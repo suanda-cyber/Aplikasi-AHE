@@ -254,7 +254,7 @@
                     <div class="flex justify-between mt-12 text-center">
                         <div class="w-40">
                             <p class="mb-16">Penyetor,</p>
-                            <p class="font-semibold border-b border-gray-400">( .......................... )</p>
+                            <p class="font-semibold border-b border-gray-400">( ............................ )</p>
                         </div>
                         <div class="w-40">
                             <p class="mb-16">Penerima (Admin),</p>
@@ -719,9 +719,28 @@
                     <td class="p-3 font-medium whitespace-nowrap">${kw.bulan}</td>
                     <td class="p-3 text-green-600 font-bold whitespace-nowrap">${formatRupiah(kw.nominal)}</td>
                     <td class="p-3 text-center whitespace-nowrap">
-                        <button onclick="cetakKwitansi(${index})" class="bg-gray-800 hover:bg-black text-white px-3 py-1 rounded text-xs transition"><i class="fas fa-print mr-1"></i> Cetak</button>
+                        <button onclick="cetakKwitansi(${index})" class="bg-gray-800 hover:bg-black text-white px-3 py-1.5 rounded text-xs transition mr-1" title="Cetak Kwitansi"><i class="fas fa-print"></i></button>
+                        <button onclick="hapusKwitansi(${kw.row_id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs transition" title="Hapus Kwitansi"><i class="fas fa-trash-alt"></i></button>
                     </td></tr>`;
             });
+        }
+
+        async function hapusKwitansi(row_id) {
+            if (!confirm("Apakah Anda yakin ingin membatalkan/menghapus kwitansi ini? Data akan terhapus permanen dari buku kas.")) return;
+            
+            document.getElementById('tabelKwitansi').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500"><i class="fas fa-spinner fa-spin mr-2"></i> Menghapus data...</td></tr>';
+            try {
+                await fetch(APPS_SCRIPT_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify({ action: "hapus_kwitansi", row_id: row_id }) 
+                });
+                // Reload data setelah 1.5 detik agar Google Sheets selesai memproses
+                setTimeout(() => loadDataKwitansi(true), 1500); 
+            } catch (e) { 
+                alert("Gagal menghapus kwitansi. Periksa koneksi Anda."); 
+                loadDataKwitansi(true); 
+            }
         }
 
         async function loadDataKwitansi(forceRefresh = false) {
