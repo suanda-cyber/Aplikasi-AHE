@@ -3,166 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Data Siswa AHE</title>
+    <title>Sistem AHE - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Pengaturan khusus agar saat di-print (dicetak), form inputnya disembunyikan */
-        @media print {
-            .no-print { display: none !important; }
-            body { background-color: white; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
     </style>
 </head>
-<body class="bg-gray-100 p-6 font-sans">
+<body class="overflow-hidden">
 
-    <div class="max-w-5xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-blue-700">Sistem Data Siswa Anak Hebat (AHE)</h1>
-            <p class="text-gray-600">Formulir Pendaftaran & Laporan Siswa</p>
-        </div>
-
-        <!-- Form Input (Akan disembunyikan saat cetak laporan) -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8 no-print">
-            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Tambah Siswa Baru</h2>
-            <form id="formSiswa" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                    <input type="text" id="nama" required class="mt-1 w-full p-2 border rounded-md">
+    <!-- ==================== LAYAR LOGIN ==================== -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-gray-100 absolute inset-0 z-50">
+        <div class="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-book-reader text-white text-3xl"></i>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Kelas (SD/SMP/SMA)</label>
-                    <input type="text" id="kelas" required class="mt-1 w-full p-2 border rounded-md">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Program Belajar</label>
-                    <select id="program" class="mt-1 w-full p-2 border rounded-md">
-                        <option value="AHE Reguler">AHE Reguler</option>
-                        <option value="AHE Privat">AHE Privat</option>
-                        <option value="AHE Calistung">AHE Calistung</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Biaya Perbulan (Rp)</label>
-                    <input type="number" id="biaya" required class="mt-1 w-full p-2 border rounded-md">
-                </div>
-                <div class="md:col-span-2">
-                    <button type="submit" id="btnSubmit" class="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700">
-                        Simpan Data Siswa
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Tabel Laporan -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h2 class="text-xl font-semibold">Laporan Data Siswa</h2>
-                <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 no-print">
-                    🖨️ Cetak Laporan
-                </button>
+                <h1 class="text-2xl font-bold text-gray-800">Sistem AHE</h1>
+                <p class="text-sm text-gray-500 mt-1">Silakan login untuk masuk ke Dashboard</p>
             </div>
             
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-blue-100">
-                            <th class="p-3 border">No</th>
-                            <th class="p-3 border">Tanggal Daftar</th>
-                            <th class="p-3 border">Nama Siswa</th>
-                            <th class="p-3 border">Kelas</th>
-                            <th class="p-3 border">Program</th>
-                            <th class="p-3 border">Biaya Perbulan</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelBody">
-                        <tr>
-                            <td colspan="6" class="text-center p-4 text-gray-500">Memuat data dari Google Sheets...</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <form id="loginForm">
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="username" required class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="password" id="password" required class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                    </div>
+                </div>
+                
+                <div id="loginAlert" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 text-center"></div>
+
+                <button type="submit" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md flex justify-center items-center">
+                    <span>Masuk</span>
+                </button>
+            </form>
+            
+            <div class="text-center mt-6 text-xs text-gray-400">
+                &copy; 2026 Anak Hebat (AHE)
             </div>
         </div>
     </div>
 
+
+    <!-- ==================== DASHBOARD (Disembunyikan Awalnya) ==================== -->
+    <div id="dashboard-screen" class="hidden flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Kiri -->
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between">
+            <div>
+                <!-- Logo & Brand -->
+                <div class="h-16 flex items-center px-6 bg-indigo-700 text-white">
+                    <i class="fas fa-book-reader text-2xl mr-3"></i>
+                    <span class="text-lg font-bold">AHE System</span>
+                </div>
+
+                <!-- Menu Navigasi -->
+                <div class="px-4 py-6 space-y-1">
+                    <p class="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mt-2 mb-2">Manajemen</p>
+                    <a href="#" onclick="switchPage('siswa', this)" class="menu-btn flex items-center px-4 py-2.5 bg-indigo-50 text-indigo-700 font-medium rounded-lg transition active-menu">
+                        <i class="fas fa-user-graduate w-5"></i> Kelola Siswa
+                    </a>
+                </div>
+            </div>
+
+            <!-- Profil Bawah -->
+            <div class="border-t border-gray-200 p-4">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold" id="profilInisial">A</div>
+                    <div class="ml-3 overflow-hidden">
+                        <p class="text-sm font-medium text-gray-700 truncate" id="profilNama">Administrator</p>
+                        <p class="text-xs text-gray-500">Admin AHE</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="flex items-center text-red-500 hover:text-red-700 transition w-full px-2">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Konten Utama Kanan -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-gray-50">
+            <!-- HALAMAN: KELOLA SISWA -->
+            <div id="page-siswa" class="page-content active p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Selamat Datang!</h1>
+                        <p class="text-sm text-gray-500">Sistem Informasi Data Siswa AHE siap digunakan.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
     <script>
-        // MASUKKAN URL DARI GOOGLE APPS SCRIPT DI SINI
+        // GANTI DENGAN URL APPS SCRIPT ANDA
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec';
 
-        // Fungsi mengambil data dari Google Sheets
-        async function loadData() {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL);
-                const data = await response.json();
-                
-                const tbody = document.getElementById('tabelBody');
-                tbody.innerHTML = ''; // Bersihkan loading
-
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4">Belum ada data siswa.</td></tr>';
-                    return;
-                }
-
-                data.forEach((siswa, index) => {
-                    // Merapikan format tanggal
-                    let tanggal = new Date(siswa.tanggal).toLocaleDateString('id-ID');
-                    // Merapikan format uang (Rupiah)
-                    let biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(siswa.biaya);
-
-                    let row = `<tr class="hover:bg-gray-50">
-                        <td class="p-3 border">${index + 1}</td>
-                        <td class="p-3 border">${tanggal}</td>
-                        <td class="p-3 border font-semibold">${siswa.nama}</td>
-                        <td class="p-3 border">${siswa.kelas}</td>
-                        <td class="p-3 border">${siswa.program}</td>
-                        <td class="p-3 border">${biaya}</td>
-                    </tr>`;
-                    tbody.innerHTML += row;
-                });
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                document.getElementById('tabelBody').innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500">Gagal memuat data.</td></tr>';
-            }
-        }
-
-        // Fungsi menyimpan data ke Google Sheets
-        document.getElementById('formSiswa').addEventListener('submit', async function(e) {
+        // Fungsi Login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const btn = document.getElementById('btnSubmit');
+            const btn = document.getElementById('btnLogin');
+            const alertBox = document.getElementById('loginAlert');
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Memeriksa...';
             btn.disabled = true;
-            btn.innerText = "Menyimpan...";
-
-            const dataSiswa = {
-                nama: document.getElementById('nama').value,
-                kelas: document.getElementById('kelas').value,
-                program: document.getElementById('program').value,
-                biaya: document.getElementById('biaya').value
-            };
+            alertBox.classList.add('hidden');
 
             try {
-                // Konfigurasi agar CORS tidak memblokir pengiriman dari GitHub ke Google Script
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dataSiswa)
-                });
-                
-                alert("Data siswa berhasil ditambahkan!");
-                document.getElementById('formSiswa').reset();
-                loadData(); // Memuat ulang tabel laporan
-                
+                // Mengirim request GET ke Google Apps Script
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${user}&password=${pass}`);
+                const result = await response.json();
+
+                if (result.status === "sukses") {
+                    // Jika sukses: Sembunyikan Login, Tampilkan Dashboard
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard-screen').classList.remove('hidden');
+                    document.getElementById('dashboard-screen').classList.add('flex');
+                    
+                    // Ubah nama di pojok kiri bawah sesuai Google Sheet
+                    document.getElementById('profilNama').innerText = result.nama_admin;
+                    document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
+                    
+                    // (Opsional) Simpan sesi login di browser agar kalau di-refresh tidak perlu login lagi
+                    sessionStorage.setItem("ahe_logged_in", "true");
+                    sessionStorage.setItem("ahe_admin_name", result.nama_admin);
+                } else {
+                    // Jika gagal (Password salah)
+                    alertBox.innerText = result.pesan;
+                    alertBox.classList.remove('hidden');
+                }
             } catch (error) {
-                alert("Terjadi kesalahan saat menyimpan data.");
+                alertBox.innerText = "Gagal terhubung ke server.";
+                alertBox.classList.remove('hidden');
             } finally {
+                btn.innerHTML = '<span>Masuk</span>';
                 btn.disabled = false;
-                btn.innerText = "Simpan Data Siswa";
             }
         });
 
-        // Muat data otomatis saat web pertama kali dibuka
-        window.onload = loadData;
+        // Fungsi Logout
+        function logout() {
+            sessionStorage.removeItem("ahe_logged_in");
+            sessionStorage.removeItem("ahe_admin_name");
+            
+            // Kembalikan tampilan ke layar login
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('flex');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        // Fungsi Pindah Halaman Menu (Tetap sama seperti tahap 1)
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.querySelectorAll('.menu-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+                btn.classList.add('text-gray-700');
+            });
+            element.classList.remove('text-gray-700');
+            element.classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+        }
+
+        // Cek apakah sudah pernah login sebelumnya
+        window.onload = function() {
+            if(sessionStorage.getItem("ahe_logged_in") === "true") {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard-screen').classList.remove('hidden');
+                document.getElementById('dashboard-screen').classList.add('flex');
+                
+                let nama = sessionStorage.getItem("ahe_admin_name");
+                document.getElementById('profilNama').innerText = nama;
+                document.getElementById('profilInisial').innerText = nama.charAt(0);
+            }
+        }
     </script>
 </body>
 </html>
