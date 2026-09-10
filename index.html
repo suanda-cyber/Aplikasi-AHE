@@ -387,46 +387,83 @@
         });
 
         // ================= RIWAYAT SPP (MODAL) =================
-        async function bukaModalRiwayatBuku(index) {
-            selectedSiswa = rawDataSiswa[index];
-            document.getElementById('titleModalRiwayatBuku').innerText = "Manajemen Buku: " + selectedSiswa.nama;
-            document.getElementById('modalRiwayatBuku').classList.remove('hidden');
-            
-            // 1. Cek Harga Buku (Prisma 30rb, lainnya 25rb)
-            let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
-            document.getElementById('teksBukuHarga').innerText = formatRupiah(harga);
-            
-            // 2. Cek Maksimal Level Buku (Matematika Hebat 20 level, lainnya 16 level)
-            let maxLevel = selectedSiswa.kelas.toLowerCase().includes("matematika hebat") ? 20 : 16;
-            
-            // 3. Generate pilihan dropdown secara otomatis sesuai maxLevel
-            let selectLevel = document.getElementById('inputBukuLevel');
-            selectLevel.innerHTML = '<option value="">- Pilih Jilid/Level -</option>';
-            for(let i = 1; i <= maxLevel; i++) {
-                selectLevel.innerHTML += `<option value="${i}">Level ${i}</option>`;
+        
+        async function bukaModalRiwayatSPP(index) {
+            try {
+                selectedSiswa = rawDataSiswa[index];
+                document.getElementById('titleModalRiwayatSPP').innerText = "Riwayat SPP: " + selectedSiswa.nama;
+                document.getElementById('modalRiwayatSPP').classList.remove('hidden');
+                document.getElementById('tabelRiwayatSPP').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
+                
+                await loadDataKwitansi(false); 
+                renderTabelRiwayatSPP();
+            } catch (error) {
+                alert("Mohon tunggu sebentar, sistem sedang memuat data...");
             }
-
-            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat...</td></tr>';
-            await loadDataBuku(false); renderTabelRiwayatBuku();
         }
+
         function renderTabelRiwayatSPP() {
-            const tbody = document.getElementById('tabelRiwayatSPP'); tbody.innerHTML = '';
+            const tbody = document.getElementById('tabelRiwayatSPP'); 
+            tbody.innerHTML = '';
+            
+            // Pengamanan agar tidak error saat data masih kosong
+            if (!rawDataKwitansi) rawDataKwitansi = []; 
+            
             const riwayat = rawDataKwitansi.filter(k => k.nama === selectedSiswa.nama);
-            if (riwayat.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada riwayat SPP.</td></tr>'; return; }
+            
+            if (riwayat.length === 0) { 
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada riwayat SPP untuk siswa ini.</td></tr>'; 
+                return; 
+            }
+            
             riwayat.forEach(k => {
-                tbody.innerHTML += `<tr><td class="p-2 border-b">${new Date(k.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 border-b font-medium">${k.bulan}</td><td class="p-2 border-b text-green-600 font-bold">${formatRupiah(k.nominal)}</td><td class="p-2 border-b text-center"><button onclick="cetakDariRiwayat(${k.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black"><i class="fas fa-print"></i> Cetak</button></td></tr>`;
+                let tgl = new Date(k.tanggal).toLocaleDateString('id-ID');
+                tbody.innerHTML += `<tr>
+                    <td class="p-2 border-b">${tgl}</td>
+                    <td class="p-2 border-b font-medium">${k.bulan}</td>
+                    <td class="p-2 border-b text-green-600 font-bold">${formatRupiah(k.nominal)}</td>
+                    <td class="p-2 border-b text-center">
+                        <button type="button" onclick="cetakDariRiwayat(${k.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black"><i class="fas fa-print"></i> Cetak</button>
+                    </td>
+                </tr>`;
             });
         }
-        function cetakDariRiwayat(row_id) { const idx = rawDataKwitansi.findIndex(k => k.row_id === row_id); if(idx !== -1) cetakKwitansi(idx); }
+
+        function cetakDariRiwayat(row_id) { 
+            const idx = rawDataKwitansi.findIndex(k => k.row_id === row_id); 
+            if(idx !== -1) cetakKwitansi(idx); 
+        }
 
         document.getElementById('formTambahSPPModal').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('btnSimpanSPPModal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
-            const payload = { action: "tambah_kwitansi", nama: selectedSiswa.nama, kelas: selectedSiswa.kelas, bulan: document.getElementById('inputSPPModalBulan').value, nominal: document.getElementById('inputSPPModalNominal').value, penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" };
+            e.preventDefault(); 
+            const btn = document.getElementById('btnSimpanSPPModal'); 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...'; 
+            btn.disabled = true;
+            
+            const payload = { 
+                action: "tambah_kwitansi", 
+                nama: selectedSiswa.nama, 
+                kelas: selectedSiswa.kelas, 
+                bulan: document.getElementById('inputSPPModalBulan').value, 
+                nominal: document.getElementById('inputSPPModalNominal').value, 
+                penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" 
+            };
+            
             try { 
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
-                document.getElementById('formTambahSPPModal').reset(); await loadDataKwitansi(true); renderTabelRiwayatSPP();
-                if(confirm("SPP Tersimpan! Ingin cetak struknya sekarang?")) { cetakKwitansi(0); } // 0 krn data terbaru di atas
-            } catch (e) { alert("Error"); } finally { btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan & Cetak'; btn.disabled = false; }
+                document.getElementById('formTambahSPPModal').reset(); 
+                await loadDataKwitansi(true); 
+                renderTabelRiwayatSPP();
+                
+                if(confirm("SPP Tersimpan! Ingin cetak struknya sekarang?")) { 
+                    cetakKwitansi(0); // 0 karena data terbaru otomatis berada di urutan paling atas
+                } 
+            } catch (e) { 
+                alert("Gagal menyimpan SPP, periksa koneksi internet Anda."); 
+            } finally { 
+                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan & Cetak'; 
+                btn.disabled = false; 
+            }
         });
 
         // ================= RIWAYAT BUKU (MODAL) =================
