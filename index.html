@@ -7,6 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        @media print {
+            body * { visibility: hidden; } /* Sembunyikan semua tombol dan menu */
+            #printArea, #printArea * { visibility: visible; } /* Tampilkan HANYA struk kwitansi */
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .page-content { display: block !important; }
+        }
+        
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .page-content { display: none; }
@@ -183,7 +190,114 @@
 
                 <!-- Halaman dummy agar error JS tidak muncul -->
                 <div id="page-gaji" class="page-content p-8"><h1 class="text-2xl font-bold">Fitur Gaji Segera Hadir</h1></div>
-                <div id="page-pembayaran" class="page-content p-8"><h1 class="text-2xl font-bold">Fitur Kwitansi Segera Hadir</h1></div>
+                
+                
+                <!-- HALAMAN: KWITANSI SPP -->
+                <div id="page-pembayaran" class="page-content p-4 md:p-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-bold text-gray-800">Kwitansi SPP</h1>
+                            <p class="text-xs md:text-sm text-gray-500">Catatan pembayaran dan cetak struk</p>
+                        </div>
+                        <button onclick="bukaModalKwitansi()" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-md font-medium text-sm transition shadow-sm flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i> Buat Kwitansi Baru
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        <th class="p-4 w-12 text-center whitespace-nowrap">No</th>
+                                        <th class="p-4 whitespace-nowrap">Tanggal</th>
+                                        <th class="p-4 whitespace-nowrap">Siswa & Kelas</th>
+                                        <th class="p-4 whitespace-nowrap">Bulan SPP</th>
+                                        <th class="p-4 whitespace-nowrap">Nominal</th>
+                                        <th class="p-4 text-center whitespace-nowrap">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelKwitansi" class="text-sm text-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== DESAIN STRUK KWITANSI (Hanya muncul saat Print) ==================== -->
+                <div id="printArea" class="hidden bg-white p-8 border-2 border-gray-800 max-w-2xl mx-auto mt-10 absolute inset-0 z-0">
+                    <!-- Kop Surat -->
+                    <div class="flex items-center justify-between border-b-2 border-gray-800 pb-4 mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-book-reader text-4xl mr-4"></i>
+                            <div>
+                                <h1 class="text-2xl font-bold uppercase tracking-widest">Anak Hebat (AHE)</h1>
+                                <p class="text-sm font-semibold">Bimbingan Belajar & Calistung</p>
+                            </div>
+                        </div>
+                        <div class="text-right text-xs">
+                            <p>No. Kwitansi: <span id="printNoKw">AHE/2026/001</span></p>
+                            <p>Tanggal: <span id="printTanggal">12/09/2026</span></p>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-center text-xl font-bold uppercase mb-6 underline">Kwitansi Pembayaran</h2>
+                    
+                    <!-- Isi Kwitansi -->
+                    <table class="w-full text-left mb-8 text-base">
+                        <tr><td class="py-2 w-40 font-semibold">Telah Terima Dari</td><td class="py-2">: <span id="printNama">Nama Siswa</span></td></tr>
+                        <tr><td class="py-2 font-semibold">Kelas / Program</td><td class="py-2">: <span id="printKelas">AHE Reguler</span></td></tr>
+                        <tr><td class="py-2 font-semibold">Untuk Pembayaran</td><td class="py-2">: SPP Bulan <span id="printBulan" class="font-bold">September 2026</span></td></tr>
+                        <tr><td class="py-2 font-semibold">Jumlah Uang</td><td class="py-2">: <span id="printNominal" class="font-bold text-lg border-2 border-gray-800 p-2 inline-block mt-1">Rp 0</span></td></tr>
+                    </table>
+
+                    <!-- Tanda Tangan -->
+                    <div class="flex justify-between mt-12 text-center">
+                        <div class="w-40">
+                            <p class="mb-16">Penyetor,</p>
+                            <p class="font-semibold border-b border-gray-400">( ................................... )</p>
+                        </div>
+                        <div class="w-40">
+                            <p class="mb-16">Penerima (Admin),</p>
+                            <p id="printPenerima" class="font-semibold border-b border-gray-400 uppercase">Nama Admin</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== MODAL TAMBAH KWITANSI ==================== -->
+                <div id="modalKwitansi" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                        <div class="flex justify-between items-center p-4 md:p-6 border-b">
+                            <h2 class="text-lg md:text-xl font-bold text-gray-800">Catat Pembayaran SPP</h2>
+                            <button onclick="tutupModalKwitansi()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+                        </div>
+                        <form id="formTambahKwitansi" class="p-4 md:p-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Nama Siswa</label>
+                                    <input type="text" id="inputKwNama" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ketik nama siswa...">
+                                </div>
+                                <div>
+                                    <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Kelas / Program</label>
+                                    <input type="text" id="inputKwKelas" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Contoh: AHE Baca">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Untuk Bulan</label>
+                                        <input type="text" id="inputKwBulan" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Contoh: Sep 2026">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
+                                        <input type="number" id="inputKwNominal" required class="w-full p-2 border border-gray-300 rounded-lg">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end gap-3 border-t pt-4">
+                                <button type="button" onclick="tutupModalKwitansi()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button>
+                                <button type="submit" id="btnSimpanKwitansi" class="px-4 py-2 bg-green-600 text-white rounded-lg"><i class="fas fa-save mr-2"></i> Simpan & Cetak</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -321,6 +435,7 @@
 
             if (pageId === 'siswa') loadDataSiswa();
             else if (pageId === 'guru') loadDataGuru();
+            else if (pageId === 'pembayaran') loadDataKwitansi(); // TAMBAHKAN BARIS INI
         }
 
         // === FITUR LOGIN ===
@@ -492,6 +607,98 @@
             try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); alert("Berhasil disimpan!"); tutupModalGuru(); setTimeout(() => loadDataGuru(true), 1500); } 
             catch (e) { alert("Kesalahan."); } finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i> Simpan'; btn.disabled = false; }
         });
+
+        // ================= FITUR KWITANSI SPP =================
+        let rawDataKwitansi = [];
+
+        function bukaModalKwitansi() { 
+            document.getElementById('formTambahKwitansi').reset();
+            document.getElementById('modalKwitansi').classList.remove('hidden'); 
+        }
+        function tutupModalKwitansi() { document.getElementById('modalKwitansi').classList.add('hidden'); }
+
+        // Fungsi mengubah angka menjadi format Rupiah
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+
+        // Fungsi untuk melempar data ke template cetak
+        function cetakKwitansi(index) {
+            let kw = rawDataKwitansi[index];
+            
+            // Format tanggal yang rapi
+            let tgl = new Date(kw.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'});
+            
+            // Isi data ke template HTML printArea
+            document.getElementById('printNoKw').innerText = "AHE/" + new Date(kw.tanggal).getFullYear() + "/" + kw.row_id;
+            document.getElementById('printTanggal').innerText = tgl;
+            document.getElementById('printNama').innerText = kw.nama;
+            document.getElementById('printKelas').innerText = kw.kelas;
+            document.getElementById('printBulan').innerText = kw.bulan;
+            document.getElementById('printNominal').innerText = formatRupiah(kw.nominal);
+            document.getElementById('printPenerima').innerText = kw.penerima;
+
+            // Munculkan Print Area, lalu panggil fungsi Print bawaan browser
+            document.getElementById('printArea').classList.remove('hidden');
+            window.print();
+            
+            // Sembunyikan lagi setelah selesai print
+            setTimeout(() => { document.getElementById('printArea').classList.add('hidden'); }, 1000);
+        }
+
+        function renderTabelKwitansi(data) {
+            rawDataKwitansi = data; const tbody = document.getElementById('tabelKwitansi'); tbody.innerHTML = ''; 
+            if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Belum ada transaksi.</td></tr>'; return; }
+            data.forEach((kw, index) => {
+                let tgl = new Date(kw.tanggal).toLocaleDateString('id-ID');
+                tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-3 text-center whitespace-nowrap">${index + 1}</td>
+                    <td class="p-3 whitespace-nowrap">${tgl} <br><span class="text-xs text-gray-400">Oleh: ${kw.penerima}</span></td>
+                    <td class="p-3 font-semibold text-gray-800 whitespace-nowrap">${kw.nama}<br><span class="font-normal text-xs text-indigo-600">${kw.kelas}</span></td>
+                    <td class="p-3 font-medium whitespace-nowrap">${kw.bulan}</td>
+                    <td class="p-3 text-green-600 font-bold whitespace-nowrap">${formatRupiah(kw.nominal)}</td>
+                    <td class="p-3 text-center whitespace-nowrap">
+                        <button onclick="cetakKwitansi(${index})" class="bg-gray-800 hover:bg-black text-white px-3 py-1 rounded text-xs transition"><i class="fas fa-print mr-1"></i> Cetak</button>
+                    </td></tr>`;
+            });
+        }
+
+        async function loadDataKwitansi(forceRefresh = false) {
+            const cached = sessionStorage.getItem('ahe_kwitansi_cache');
+            if (cached && !forceRefresh) { renderTabelKwitansi(JSON.parse(cached)); fetchKwitansiDariServer(true); return; }
+            document.getElementById('tabelKwitansi').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
+            await fetchKwitansiDariServer(false);
+        }
+
+        async function fetchKwitansiDariServer(isBackground) {
+            try { const response = await fetch(`${APPS_SCRIPT_URL}?action=get_kwitansi`); const data = await response.json(); sessionStorage.setItem('ahe_kwitansi_cache', JSON.stringify(data)); renderTabelKwitansi(data); } 
+            catch (e) { if (!isBackground) document.getElementById('tabelKwitansi').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat.</td></tr>'; }
+        }
+
+        document.getElementById('formTambahKwitansi').addEventListener('submit', async function(e) {
+            e.preventDefault(); const btn = document.getElementById('btnSimpanKwitansi'); btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true;
+            
+            // Ambil nama admin yang sedang login
+            let adminName = sessionStorage.getItem("ahe_admin_name") || "Admin";
+
+            const payload = { 
+                action: "tambah_kwitansi", 
+                nama: document.getElementById('inputKwNama').value, 
+                kelas: document.getElementById('inputKwKelas').value, 
+                bulan: document.getElementById('inputKwBulan').value, 
+                nominal: document.getElementById('inputKwNominal').value,
+                penerima: adminName // Otomatis mengisi nama penerima uang
+            };
+            try { 
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
+                alert("Pembayaran berhasil dicatat!"); 
+                tutupModalKwitansi(); 
+                document.getElementById('tabelKwitansi').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat ulang...</td></tr>';
+                setTimeout(() => loadDataKwitansi(true), 1500); 
+            } 
+            catch (e) { alert("Kesalahan saat menyimpan."); } finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i> Simpan & Cetak'; btn.disabled = false; }
+        });
+        
     </script>
 </body>
 </html>
