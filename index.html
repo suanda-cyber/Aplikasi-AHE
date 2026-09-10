@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Data Siswa AHE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Pengaturan khusus agar saat di-print (dicetak), form inputnya disembunyikan */
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-700">Sistem Data Siswa Anak Hebat (AHE)</h1>
+            <p class="text-gray-600">Formulir Pendaftaran & Laporan Siswa</p>
+        </div>
+
+        <!-- Form Input (Akan disembunyikan saat cetak laporan) -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 no-print">
+            <h2 class="text-xl font-semibold mb-4 border-b pb-2">Tambah Siswa Baru</h2>
+            <form id="formSiswa" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                    <input type="text" id="nama" required class="mt-1 w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Kelas (SD/SMP/SMA)</label>
+                    <input type="text" id="kelas" required class="mt-1 w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Program Belajar</label>
+                    <select id="program" class="mt-1 w-full p-2 border rounded-md">
+                        <option value="AHE Reguler">AHE Reguler</option>
+                        <option value="AHE Privat">AHE Privat</option>
+                        <option value="AHE Calistung">AHE Calistung</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Biaya Perbulan (Rp)</label>
+                    <input type="number" id="biaya" required class="mt-1 w-full p-2 border rounded-md">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" id="btnSubmit" class="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700">
+                        Simpan Data Siswa
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabel Laporan -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-semibold">Laporan Data Siswa</h2>
+                <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 no-print">
+                    🖨️ Cetak Laporan
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-blue-100">
+                            <th class="p-3 border">No</th>
+                            <th class="p-3 border">Tanggal Daftar</th>
+                            <th class="p-3 border">Nama Siswa</th>
+                            <th class="p-3 border">Kelas</th>
+                            <th class="p-3 border">Program</th>
+                            <th class="p-3 border">Biaya Perbulan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelBody">
+                        <tr>
+                            <td colspan="6" class="text-center p-4 text-gray-500">Memuat data dari Google Sheets...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASUKKAN URL DARI GOOGLE APPS SCRIPT DI SINI
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec';
+
+        // Fungsi mengambil data dari Google Sheets
+        async function loadData() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('tabelBody');
+                tbody.innerHTML = ''; // Bersihkan loading
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4">Belum ada data siswa.</td></tr>';
+                    return;
+                }
+
+                data.forEach((siswa, index) => {
+                    // Merapikan format tanggal
+                    let tanggal = new Date(siswa.tanggal).toLocaleDateString('id-ID');
+                    // Merapikan format uang (Rupiah)
+                    let biaya = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(siswa.biaya);
+
+                    let row = `<tr class="hover:bg-gray-50">
+                        <td class="p-3 border">${index + 1}</td>
+                        <td class="p-3 border">${tanggal}</td>
+                        <td class="p-3 border font-semibold">${siswa.nama}</td>
+                        <td class="p-3 border">${siswa.kelas}</td>
+                        <td class="p-3 border">${siswa.program}</td>
+                        <td class="p-3 border">${biaya}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('tabelBody').innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        // Fungsi menyimpan data ke Google Sheets
+        document.getElementById('formSiswa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "Menyimpan...";
+
+            const dataSiswa = {
+                nama: document.getElementById('nama').value,
+                kelas: document.getElementById('kelas').value,
+                program: document.getElementById('program').value,
+                biaya: document.getElementById('biaya').value
+            };
+
+            try {
+                // Konfigurasi agar CORS tidak memblokir pengiriman dari GitHub ke Google Script
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataSiswa)
+                });
+                
+                alert("Data siswa berhasil ditambahkan!");
+                document.getElementById('formSiswa').reset();
+                loadData(); // Memuat ulang tabel laporan
+                
+            } catch (error) {
+                alert("Terjadi kesalahan saat menyimpan data.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Simpan Data Siswa";
+            }
+        });
+
+        // Muat data otomatis saat web pertama kali dibuka
+        window.onload = loadData;
+    </script>
+</body>
+</html>
