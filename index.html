@@ -435,15 +435,30 @@
             const cached = sessionStorage.getItem('ahe_buku_cache'); if(cached && !force) { rawDataBuku = JSON.parse(cached); return; }
             try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_buku`); rawDataBuku = await res.json(); sessionStorage.setItem('ahe_buku_cache', JSON.stringify(rawDataBuku)); } catch(e) {}
         }
+        
         async function bukaModalRiwayatBuku(index) {
             selectedSiswa = rawDataSiswa[index];
             document.getElementById('titleModalRiwayatBuku').innerText = "Manajemen Buku: " + selectedSiswa.nama;
             document.getElementById('modalRiwayatBuku').classList.remove('hidden');
+            
+            // 1. Cek Harga Buku (Prisma 30rb, lainnya 25rb)
             let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
             document.getElementById('teksBukuHarga').innerText = formatRupiah(harga);
+            
+            // 2. Cek Maksimal Level Buku (Matematika Hebat 20 level, lainnya 16 level)
+            let maxLevel = selectedSiswa.kelas.toLowerCase().includes("matematika hebat") ? 20 : 16;
+            
+            // 3. Generate pilihan dropdown secara otomatis sesuai maxLevel
+            let selectLevel = document.getElementById('inputBukuLevel');
+            selectLevel.innerHTML = '<option value="">- Pilih Jilid/Level -</option>';
+            for(let i = 1; i <= maxLevel; i++) {
+                selectLevel.innerHTML += `<option value="${i}">Level ${i}</option>`;
+            }
+
             document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat...</td></tr>';
             await loadDataBuku(false); renderTabelRiwayatBuku();
         }
+        
         function renderTabelRiwayatBuku() {
             const tbody = document.getElementById('tabelRiwayatBuku'); tbody.innerHTML = '';
             const riwayat = rawDataBuku.filter(b => b.nama === selectedSiswa.nama);
