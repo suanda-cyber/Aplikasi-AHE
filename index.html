@@ -254,7 +254,7 @@
                     <div class="flex justify-between mt-12 text-center">
                         <div class="w-40">
                             <p class="mb-16">Penyetor,</p>
-                            <p class="font-semibold border-b border-gray-400">( ................................... )</p>
+                            <p class="font-semibold border-b border-gray-400">( .......................... )</p>
                         </div>
                         <div class="w-40">
                             <p class="mb-16">Penerima (Admin),</p>
@@ -274,11 +274,15 @@
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Nama Siswa</label>
-                                    <input type="text" id="inputKwNama" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ketik nama siswa...">
+                                    <!-- Menambahkan oninput="autoFillKelas()" dan atribut list -->
+                                    <input type="text" list="listSiswa" id="inputKwNama" oninput="autoFillKelas()" required class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="Ketik atau pilih nama siswa...">
+                                    <!-- Tempat daftar siswa akan dimuat -->
+                                    <datalist id="listSiswa"></datalist>
                                 </div>
                                 <div>
                                     <label class="block text-xs md:text-sm font-medium text-gray-700 mb-1">Kelas / Program</label>
-                                    <input type="text" id="inputKwKelas" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Contoh: AHE Baca">
+                                    <!-- Menambahkan atribut readonly dan warna abu-abu agar tidak bisa diketik manual -->
+                                    <input type="text" id="inputKwKelas" required readonly class="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 focus:outline-none" placeholder="Otomatis terisi...">
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
@@ -611,9 +615,66 @@
         // ================= FITUR KWITANSI SPP =================
         let rawDataKwitansi = [];
 
-        function bukaModalKwitansi() { 
+        // Fungsi Membuka Modal & Memanggil Data Siswa
+        async function bukaModalKwitansi() { 
             document.getElementById('formTambahKwitansi').reset();
+            document.getElementById('inputKwKelas').value = ""; // Kosongkan kelas default
             document.getElementById('modalKwitansi').classList.remove('hidden'); 
+            
+            // Panggil data siswa untuk auto-complete
+            await populateDatalistSiswa();
+        }
+
+        // Fungsi Menarik Data Siswa ke dalam Datalist
+        async function populateDatalistSiswa() {
+            const datalist = document.getElementById('listSiswa');
+            
+            // Menggunakan sistem cache agar super cepat
+            let dataSiswa = [];
+            const cached = sessionStorage.getItem('ahe_siswa_cache');
+            
+            if (cached) {
+                dataSiswa = JSON.parse(cached);
+            } else {
+                try {
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=get_siswa`);
+                    dataSiswa = await response.json();
+                    sessionStorage.setItem('ahe_siswa_cache', JSON.stringify(dataSiswa));
+                } catch (e) {
+                    console.error("Gagal memuat data siswa");
+                    return;
+                }
+            }
+
+            // Bersihkan list lalu isi dengan nama siswa dan simpan kelasnya diam-diam di 'data-kelas'
+            datalist.innerHTML = ''; 
+            dataSiswa.forEach(siswa => {
+                datalist.innerHTML += `<option value="${siswa.nama}" data-kelas="${siswa.kelas}">`;
+            });
+        }
+
+        // Fungsi Auto-Fill (Isi Kelas Otomatis saat Nama dipilih)
+        function autoFillKelas() {
+            const inputNama = document.getElementById('inputKwNama').value;
+            const inputKelas = document.getElementById('inputKwKelas');
+            const datalistOptions = document.getElementById('listSiswa').options;
+            
+            let ditemukan = false;
+            
+            // Cek apakah nama yang diketik/dipilih cocok dengan yang ada di database
+            for (let i = 0; i < datalistOptions.length; i++) {
+                if (datalistOptions[i].value === inputNama) {
+                    // Jika cocok, tarik data kelasnya dan masukkan ke kotak Kelas
+                    inputKelas.value = datalistOptions[i].getAttribute('data-kelas');
+                    ditemukan = true;
+                    break;
+                }
+            }
+            
+            // Jika nama tidak ada di database / dihapus lagi, kosongkan kelas
+            if (!ditemukan) {
+                inputKelas.value = ""; 
+            }
         }
         function tutupModalKwitansi() { document.getElementById('modalKwitansi').classList.add('hidden'); }
 
