@@ -289,15 +289,18 @@
         </main>
     </div>
 
+
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <!-- ==================== JAVASCRIPT ==================== -->
     <!-- ==================== JAVASCRIPT ==================== -->
     <script>
-        // GANTI DENGAN URL APPS SCRIPT ANDA
+        // ================= 1. PENGATURAN URL =================
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec';
 
-        // Fungsi Login
+        // ================= 2. FITUR LOGIN & LOGOUT =================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const btn = document.getElementById('btnLogin');
             const alertBox = document.getElementById('loginAlert');
             const user = document.getElementById('username').value;
@@ -308,23 +311,79 @@
             alertBox.classList.add('hidden');
 
             try {
-                // Mengirim request GET ke Google Apps Script
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${user}&password=${pass}`);
                 const result = await response.json();
 
                 if (result.status === "sukses") {
-                    // Jika sukses: Sembunyikan Login, Tampilkan Dashboard
-                    // loadDataSiswa()
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard-screen').classList.remove('hidden');
+                    document.getElementById('dashboard-screen').classList.add('flex');
+                    
+                    document.getElementById('profilNama').innerText = result.nama_admin;
+                    document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
+                    
+                    sessionStorage.setItem("ahe_logged_in", "true");
+                    sessionStorage.setItem("ahe_admin_name", result.nama_admin);
 
-                    // ================= GLOBAL VARIABLES UNTUK EDIT =================
+                    // Otomatis memuat data siswa saat pertama kali masuk
+                    loadDataSiswa();
+                } else {
+                    alertBox.innerText = result.pesan;
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (error) {
+                alertBox.innerText = "Gagal terhubung ke server.";
+                alertBox.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = '<span>Masuk</span>';
+                btn.disabled = false;
+            }
+        });
+
+        function logout() {
+            sessionStorage.removeItem("ahe_logged_in");
+            sessionStorage.removeItem("ahe_admin_name");
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('flex');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        window.onload = function() {
+            if(sessionStorage.getItem("ahe_logged_in") === "true") {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard-screen').classList.remove('hidden');
+                document.getElementById('dashboard-screen').classList.add('flex');
+                
+                let nama = sessionStorage.getItem("ahe_admin_name");
+                document.getElementById('profilNama').innerText = nama;
+                document.getElementById('profilInisial').innerText = nama.charAt(0);
+                
+                loadDataSiswa();
+            }
+        }
+
+        // ================= 3. NAVIGASI MENU =================
+        function switchPage(pageId, element) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            
+            document.querySelectorAll('.menu-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+                btn.classList.add('text-gray-700');
+            });
+            element.classList.remove('text-gray-700');
+            element.classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+
+            if (pageId === 'siswa') loadDataSiswa();
+            else if (pageId === 'guru') loadDataGuru();
+        }
+
+        // ================= 4. FITUR KELOLA SISWA =================
         let rawDataSiswa = [];
-        let rawDataGuru = [];
         let editModeSiswa = false;
         let currentRowSiswa = null;
-        let editModeGuru = false;
-        let currentRowGuru = null;
 
-        // ================= FITUR SISWA =================
         function bukaModalSiswa(isEdit = false) { 
             editModeSiswa = isEdit;
             document.getElementById('titleModalSiswa').innerText = isEdit ? "Edit Data Siswa" : "Tambah Data Siswa Baru";
@@ -336,32 +395,28 @@
         function siapkanEditSiswa(index) {
             let siswa = rawDataSiswa[index];
             currentRowSiswa = siswa.row_id;
-            
             document.getElementById('inputNama').value = siswa.nama;
             document.getElementById('inputTglLahir').value = siswa.tgl_lahir;
             document.getElementById('inputAlamat').value = siswa.alamat;
             document.getElementById('inputOrtu').value = siswa.nama_ortu;
             document.getElementById('inputTelp').value = siswa.no_telp;
             document.getElementById('inputKelas').value = siswa.kelas;
-            
-            bukaModalSiswa(true); // Buka form dalam mode Edit
+            bukaModalSiswa(true);
         }
 
         async function hapusSiswa(row_id) {
-            if (!confirm("Apakah Anda yakin ingin menghapus data siswa ini? Data akan hilang permanen.")) return;
-            
-            document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500"><i class="fas fa-spinner fa-spin mr-2"></i> Menghapus data...</td></tr>';
+            if (!confirm("Apakah Anda yakin ingin menghapus data siswa ini?")) return;
+            document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500"><i class="fas fa-spinner fa-spin mr-2"></i> Menghapus...</td></tr>';
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "hapus_siswa", row_id: row_id }) });
                 setTimeout(() => loadDataSiswa(true), 1500); 
-            } catch (error) { alert("Gagal menghapus data."); loadDataSiswa(true); }
+            } catch (error) { alert("Gagal menghapus."); loadDataSiswa(true); }
         }
 
         function renderTabelSiswa(data) {
-            rawDataSiswa = data; // Simpan ke global array
+            rawDataSiswa = data;
             const tbody = document.getElementById('tabelSiswa');
             tbody.innerHTML = ''; 
-            
             if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Belum ada data siswa.</td></tr>'; return; }
 
             data.forEach((siswa, index) => {
@@ -372,8 +427,8 @@
                     <td class="p-4 text-gray-600">${siswa.nama_ortu}</td>
                     <td class="p-4 text-gray-600">${siswa.no_telp}</td>
                     <td class="p-4 text-center">
-                        <button onclick="siapkanEditSiswa(${index})" class="text-blue-500 hover:text-blue-700 mx-2" title="Edit"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusSiswa(${siswa.row_id})" class="text-red-500 hover:text-red-700 mx-2" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+                        <button onclick="siapkanEditSiswa(${index})" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="hapusSiswa(${siswa.row_id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 </tr>`;
                 tbody.innerHTML += row;
@@ -393,7 +448,7 @@
                 const data = await response.json();
                 sessionStorage.setItem('ahe_data_siswa_cache', JSON.stringify(data));
                 renderTabelSiswa(data);
-            } catch (error) { if (!isBackground) document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat data.</td></tr>'; }
+            } catch (error) { if (!isBackground) document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat.</td></tr>'; }
         }
 
         document.getElementById('formTambahSiswa').addEventListener('submit', async function(e) {
@@ -415,14 +470,18 @@
 
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                alert(editModeSiswa ? "Data siswa berhasil diubah!" : "Data siswa berhasil ditambahkan!");
+                alert(editModeSiswa ? "Data siswa diubah!" : "Data siswa ditambahkan!");
                 tutupModalSiswa();
                 setTimeout(() => loadDataSiswa(true), 1500); 
-            } catch (error) { alert("Terjadi kesalahan sistem."); } 
+            } catch (error) { alert("Terjadi kesalahan."); } 
             finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i> Simpan Data'; btn.disabled = false; }
         });
 
-        // ================= FITUR GURU =================
+        // ================= 5. FITUR KELOLA GURU =================
+        let rawDataGuru = [];
+        let editModeGuru = false;
+        let currentRowGuru = null;
+
         function bukaModalGuru(isEdit = false) { 
             editModeGuru = isEdit;
             document.getElementById('titleModalGuru').innerText = isEdit ? "Edit Data Guru" : "Tambah Data Guru";
@@ -434,12 +493,10 @@
         function siapkanEditGuru(index) {
             let guru = rawDataGuru[index];
             currentRowGuru = guru.row_id;
-            
             document.getElementById('inputNamaGuru').value = guru.nama;
             document.getElementById('inputAlamatGuru').value = guru.alamat;
             document.getElementById('inputPendidikanGuru').value = guru.pendidikan;
             document.getElementById('inputTelpGuru').value = guru.no_telp;
-            
             bukaModalGuru(true);
         }
 
@@ -449,7 +506,7 @@
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "hapus_guru", row_id: row_id }) });
                 setTimeout(() => loadDataGuru(true), 1500); 
-            } catch (error) { alert("Gagal menghapus data."); loadDataGuru(true); }
+            } catch (error) { alert("Gagal menghapus."); loadDataGuru(true); }
         }
 
         function renderTabelGuru(data) {
@@ -507,7 +564,7 @@
 
             try {
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                alert(editModeGuru ? "Data guru berhasil diubah!" : "Berhasil menyimpan data guru!");
+                alert(editModeGuru ? "Data guru diubah!" : "Data guru ditambahkan!");
                 tutupModalGuru();
                 setTimeout(() => loadDataGuru(true), 1500); 
             } catch (error) { alert("Terjadi kesalahan."); } 
