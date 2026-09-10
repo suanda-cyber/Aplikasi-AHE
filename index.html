@@ -214,7 +214,70 @@
 
                 if (result.status === "sukses") {
                     // Jika sukses: Sembunyikan Login, Tampilkan Dashboard
-                    loadDataSiswa()
+                    // loadDataSiswa()
+
+                    // ================= FITUR LOAD DATA SUPER CEPAT =================
+
+        // 1. Fungsi merender HTML ke tabel
+        function renderTabelSiswa(data) {
+            const tbody = document.getElementById('tabelSiswa');
+            tbody.innerHTML = ''; 
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-500">Belum ada data siswa.</td></tr>';
+                return;
+            }
+
+            data.forEach((siswa, index) => {
+                let row = `<tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                    <td class="p-4 text-center">${index + 1}</td>
+                    <td class="p-4 font-semibold text-gray-800">${siswa.nama}</td>
+                    <td class="p-4"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${siswa.kelas}</span></td>
+                    <td class="p-4 text-gray-600">${siswa.nama_ortu}</td>
+                    <td class="p-4 text-center text-gray-600">${siswa.no_telp}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // 2. Fungsi Utama Load Data (Dengan Sistem Cache)
+        async function loadDataSiswa(forceRefresh = false) {
+            const tbody = document.getElementById('tabelSiswa');
+            
+            // Cek apakah data sudah ada di memori memori browser (Cache)
+            const cachedData = sessionStorage.getItem('ahe_data_siswa_cache');
+
+            if (cachedData && !forceRefresh) {
+                // TAMPILKAN INSTAN (0.1 detik)
+                renderTabelSiswa(JSON.parse(cachedData));
+                
+                // Diam-diam minta data terbaru ke Google Sheets di latar belakang
+                fetchSiswaDariServer(true); 
+                return;
+            }
+
+            // Jika belum ada cache sama sekali, munculkan loading
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat data dari server...</td></tr>';
+            await fetchSiswaDariServer(false);
+        }
+
+        // 3. Fungsi Menghubungi Google Sheets
+        async function fetchSiswaDariServer(isBackground) {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=get_siswa`);
+                const data = await response.json();
+                
+                // Simpan data terbaru ke Memori Browser
+                sessionStorage.setItem('ahe_data_siswa_cache', JSON.stringify(data));
+                
+                // Perbarui tampilan tabel
+                renderTabelSiswa(data);
+            } catch (error) {
+                if (!isBackground) {
+                    document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-red-500">Gagal memuat data. Periksa koneksi internet.</td></tr>';
+                }
+            }
+        }
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.remove('hidden');
                     document.getElementById('dashboard-screen').classList.add('flex');
@@ -344,7 +407,7 @@
                 
                 // Refresh tabel (berikan jeda 1 detik agar Google Sheets selesai menulis)
                 document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i> Memuat ulang data...</td></tr>';
-                setTimeout(loadDataSiswa, 1500); 
+                setTimeout(() => loadDataSiswa(true), 1500); 
 
             } catch (error) {
                 alert("Terjadi kesalahan sistem saat menyimpan data.");
