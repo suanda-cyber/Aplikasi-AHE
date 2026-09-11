@@ -68,6 +68,10 @@
                     <a href="#" id="menu-laporan" onclick="switchPage('laporan')" class="menu-btn flex items-center px-4 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition">
                         <i class="fas fa-chart-line w-5"></i> Laporan Keuangan
                     </a>
+
+                    <a href="#" id="menu-admin" onclick="switchPage('admin')" class="menu-btn flex items-center px-4 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition">
+                        <i class="fas fa-user-shield w-5"></i> Kelola Admin
+                    </a>
                 </div>
             </div>
             <div class="border-t border-gray-200 p-4 shrink-0">
@@ -168,6 +172,28 @@
                         </button>
                     </div>
 
+
+                <!-- HALAMAN: KELOLA ADMIN -->
+                <div id="page-admin" class="page-content p-4 md:p-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-bold text-gray-800">Kelola Akun Admin</h1>
+                            <p class="text-xs md:text-sm text-gray-500">Pengaturan akses masuk sistem AHE</p>
+                        </div>
+                        <button onclick="bukaModalAdmin()" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-md font-medium text-sm transition flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i> Tambah Admin
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead><tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase"><th class="p-4 w-12 text-center">No</th><th class="p-4">Nama Lengkap</th><th class="p-4">Username</th><th class="p-4 text-center">Aksi</th></tr></thead>
+                                <tbody id="tabelAdmin" class="text-sm text-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                    
                     <!-- Filter Tanggal -->
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-end">
                         <div>
@@ -422,6 +448,27 @@
         </div>
     </div>
 
+
+    <!-- Modal Admin -->
+    <div id="modalAdmin" class="hidden modal-bg fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex justify-between items-center p-4 md:p-6 border-b"><h2 id="titleModalAdmin" class="text-lg md:text-xl font-bold text-gray-800">Tambah Admin</h2><button onclick="tutupModalAdmin()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button></div>
+            <form id="formTambahAdmin" class="p-4 md:p-6">
+                <div class="space-y-4">
+                    <div><label class="block text-xs font-medium text-gray-700 mb-1">Nama Lengkap Admin</label><input type="text" id="inputAdminNama" required class="w-full p-2 border border-gray-300 rounded-lg"></div>
+                    <div><label class="block text-xs font-medium text-gray-700 mb-1">Username (Untuk Login)</label><input type="text" id="inputAdminUsername" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Tanpa spasi"></div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="inputAdminPassword" required class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ketik password baru...">
+                        <p class="text-[10px] text-gray-400 mt-1">*Sistem menggunakan enkripsi SHA-256</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3 border-t pt-4"><button type="button" onclick="tutupModalAdmin()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Batal</button><button type="submit" id="btnSimpanAdmin" class="px-4 py-2 bg-indigo-600 text-white rounded-lg"><i class="fas fa-save mr-2"></i> Simpan</button></div>
+            </form>
+        </div>
+    </div>
+    
+
     <!-- ==================== JAVASCRIPT ==================== -->
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec'; // MASUKKAN URL ANDA!
@@ -437,22 +484,42 @@
             if(window.innerWidth < 768) toggleSidebar();
             if (pageId === 'dashboard') loadDashboard(); else if (pageId === 'siswa') loadDataSiswa(); else if (pageId === 'guru') loadDataGuru(); else if (pageId === 'pembayaran') loadDataKwitansi(); 
             else if (pageId === 'laporan') loadDataLaporan(); // <-- TAMBAHKAN BARIS INI
+            else if (pageId === 'admin') loadDataAdmin();
         }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault(); const btn = document.getElementById('btnLogin'); const alertBox = document.getElementById('loginAlert');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true; alertBox.classList.add('hidden');
             try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${document.getElementById('username').value}&password=${document.getElementById('password').value}`);
-                const result = await res.json();
-                if (result.status === "sukses") {
-                    document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').classList.add('flex');
-                    document.getElementById('profilNama').innerText = result.nama_admin; document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
-                    sessionStorage.setItem("ahe_logged_in", "true"); sessionStorage.setItem("ahe_admin_name", result.nama_admin);
-                    switchPage('dashboard');
-                } else { alertBox.innerText = result.pesan; alertBox.classList.remove('hidden'); }
-            } catch (e) { alertBox.innerText = "Gagal terhubung."; alertBox.classList.remove('hidden'); } finally { btn.innerHTML = '<span>Masuk</span>'; btn.disabled = false; }
-        });
+                        // ================= MESIN ENKRIPSI (SHA-256) =================
+                async function hashPassword(message) {
+                    const msgBuffer = new TextEncoder().encode(message);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                }
+        
+                // ================= UPDATE PROSES LOGIN =================
+                document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                    e.preventDefault(); const btn = document.getElementById('btnLogin'); const alertBox = document.getElementById('loginAlert');
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true; alertBox.classList.add('hidden');
+                    
+                    try {
+                        // Proses Enkripsi password saat Login
+                        const rawPass = document.getElementById('password').value;
+                        const encryptedPass = await hashPassword(rawPass); 
+                        
+                        const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${document.getElementById('username').value}&password=${encryptedPass}`);
+                        const result = await res.json();
+                        
+                        if (result.status === "sukses") {
+                            document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').classList.add('flex');
+                            document.getElementById('profilNama').innerText = result.nama_admin; document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
+                            sessionStorage.setItem("ahe_logged_in", "true"); sessionStorage.setItem("ahe_admin_name", result.nama_admin);
+                            switchPage('dashboard');
+                        } else { alertBox.innerText = result.pesan; alertBox.classList.remove('hidden'); }
+                    } catch (e) { alertBox.innerText = "Gagal terhubung."; alertBox.classList.remove('hidden'); } finally { btn.innerHTML = '<span>Masuk</span>'; btn.disabled = false; }
+                });
 
         function logout() { sessionStorage.clear(); location.reload(); }
 
@@ -904,7 +971,71 @@
             window.print();
             setTimeout(() => { document.getElementById('printAreaLaporan').classList.add('hidden'); }, 1000);
         }
+
+
+        // ================= FITUR KELOLA ADMIN =================
+        let rawDataAdmin = []; let editModeAdmin = false; let currentRowAdmin = null;
         
+        function bukaModalAdmin(isEdit = false) { 
+            editModeAdmin = isEdit; 
+            document.getElementById('titleModalAdmin').innerText = isEdit ? "Edit Admin" : "Tambah Admin Baru"; 
+            let passInput = document.getElementById('inputAdminPassword');
+            if (!isEdit) { 
+                document.getElementById('formTambahAdmin').reset(); currentRowAdmin = null; 
+                passInput.required = true; passInput.placeholder = "Ketik password baru...";
+            } 
+            document.getElementById('modalAdmin').classList.remove('hidden'); 
+        }
+        function tutupModalAdmin() { document.getElementById('modalAdmin').classList.add('hidden'); }
+        
+        function siapkanEditAdmin(index) { 
+            let adm = rawDataAdmin[index]; currentRowAdmin = adm.row_id; 
+            document.getElementById('inputAdminUsername').value = adm.username; 
+            document.getElementById('inputAdminNama').value = adm.nama; 
+            
+            let passInput = document.getElementById('inputAdminPassword');
+            passInput.value = ''; passInput.required = false;
+            passInput.placeholder = "(Kosongkan jika tidak ubah password)";
+            bukaModalAdmin(true); 
+        }
+        
+        async function hapusAdmin(row_id) { 
+            if (rawDataAdmin.length <= 1) { alert("Dilarang menghapus! Harus tersisa minimal 1 admin."); return; }
+            if (!confirm("Yakin ingin menghapus akun admin ini?")) return; 
+            document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-red-500">Menghapus...</td></tr>'; 
+            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_admin", row_id: row_id }) }); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { loadDataAdmin(true); } 
+        }
+
+        function renderTabelAdmin(data) { 
+            rawDataAdmin = data; const tbody = document.getElementById('tabelAdmin'); tbody.innerHTML = ''; 
+            data.forEach((adm, i) => { 
+                tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3 text-center">${i + 1}</td><td class="p-3 font-semibold text-gray-800">${adm.nama}</td><td class="p-3 font-medium text-indigo-600">${adm.username}</td><td class="p-3 text-center"><button onclick="siapkanEditAdmin(${i})" class="text-blue-500 mx-1" title="Edit"><i class="fas fa-edit"></i></button><button onclick="hapusAdmin(${adm.row_id})" class="text-red-500 mx-1" title="Hapus"><i class="fas fa-trash-alt"></i></button></td></tr>`; 
+            }); 
+        }
+        
+        async function loadDataAdmin(force = false) { 
+            const cached = sessionStorage.getItem('ahe_admin_cache'); 
+            if (cached && !force) { renderTabelAdmin(JSON.parse(cached)); fetchAdminDariServer(true); return; } 
+            document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>'; 
+            await fetchAdminDariServer(false); 
+        }
+        
+        async function fetchAdminDariServer(isBg) { 
+            try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_admin`); const data = await res.json(); sessionStorage.setItem('ahe_admin_cache', JSON.stringify(data)); renderTabelAdmin(data); } catch (e) {} 
+        }
+        
+        document.getElementById('formTambahAdmin').addEventListener('submit', async function(e) { 
+            e.preventDefault(); const btn = document.getElementById('btnSimpanAdmin'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; 
+            
+            // Proses Hash Password sebelum kirim ke server
+            let rawPass = document.getElementById('inputAdminPassword').value;
+            let encryptedPass = rawPass ? await hashPassword(rawPass) : ""; 
+            
+            const payload = { action: editModeAdmin ? "edit_admin" : "tambah_admin", row_id: currentRowAdmin, username: document.getElementById('inputAdminUsername').value, nama: document.getElementById('inputAdminNama').value, password: encryptedPass }; 
+            
+            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); alert("Berhasil disimpan!"); tutupModalAdmin(); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { alert("Error.");} finally { btn.innerHTML = 'Simpan'; btn.disabled = false; } 
+        });
+                
     </script>
 </body>
 </html>
