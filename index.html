@@ -16,8 +16,8 @@
         
         @media print {
             body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            #printArea, #printArea *, #printAreaBuku, #printAreaBuku * { visibility: visible; }
+            #printArea, #printAreaBuku { position: absolute; left: 0; top: 0; width: 100%; }
             .page-content, .modal-bg { display: none !important; }
         }
     </style>
@@ -177,6 +177,25 @@
         </div>
     </div>
 
+    <!-- ==================== DESAIN STRUK BUKU PRINT ==================== -->
+    <div id="printAreaBuku" class="hidden bg-white p-8 border-2 border-gray-800 max-w-2xl mx-auto mt-10 absolute inset-0 z-0">
+        <div class="flex items-center justify-between border-b-2 border-gray-800 pb-4 mb-6">
+            <div class="flex items-center"><i class="fas fa-book text-4xl mr-4"></i><div><h1 class="text-2xl font-bold uppercase tracking-widest">Anak Hebat (AHE)</h1><p class="text-sm font-semibold">Bimbingan Belajar & Calistung</p></div></div>
+            <div class="text-right text-xs"><p>No. Kwitansi: <span id="printBukuNoKw">AHE-BK/2026/001</span></p><p>Tanggal: <span id="printBukuTanggal">12/09/2026</span></p></div>
+        </div>
+        <h2 class="text-center text-xl font-bold uppercase mb-6 underline">Kwitansi Pembelian Buku</h2>
+        <table class="w-full text-left mb-8 text-base">
+            <tr><td class="py-2 w-40 font-semibold">Telah Terima Dari</td><td class="py-2">: <span id="printBukuNama">Nama Siswa</span></td></tr>
+            <tr><td class="py-2 font-semibold">Kelas / Program</td><td class="py-2">: <span id="printBukuKelas">AHE Reguler</span></td></tr>
+            <tr><td class="py-2 font-semibold">Untuk Pembelian</td><td class="py-2">: Modul / Buku <span id="printBukuLevel" class="font-bold">Level X</span></td></tr>
+            <tr><td class="py-2 font-semibold">Jumlah Uang</td><td class="py-2">: <span id="printBukuNominal" class="font-bold text-lg border-2 border-gray-800 p-2 inline-block mt-1">Rp 0</span></td></tr>
+        </table>
+        <div class="flex justify-between mt-12 text-center">
+            <div class="w-40"><p class="mb-16">Penyetor,</p><p class="font-semibold border-b border-gray-400">( ........................... )</p></div>
+            <div class="w-40"><p class="mb-16">Penerima (Admin),</p><p id="printBukuPenerima" class="font-semibold border-b border-gray-400 uppercase">Nama Admin</p></div>
+        </div>
+    </div>
+
     <!-- ==================== MODALS ==================== -->
     <!-- Modal Siswa -->
     <div id="modalSiswa" class="hidden modal-bg fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -293,7 +312,7 @@
 
                 <h3 class="text-sm font-bold text-gray-700 mb-2">Buku yang Sudah Dimiliki:</h3>
                 <table class="w-full text-left border-collapse border border-gray-200">
-                    <thead><tr class="bg-gray-100 text-xs text-gray-600"><th class="p-2 border">Tanggal Beli</th><th class="p-2 border">Level Buku</th><th class="p-2 border">Harga</th><th class="p-2 border text-center">Hapus</th></tr></thead>
+                    <thead><tr class="bg-gray-100 text-xs text-gray-600"><th class="p-2 border">Tanggal Beli</th><th class="p-2 border">Level Buku</th><th class="p-2 border">Harga</th><th class="p-2 border text-center">Aksi</th></tr></thead>
                     <tbody id="tabelRiwayatBuku" class="text-sm"></tbody>
                 </table>
             </div>
@@ -468,9 +487,15 @@
 
         // ================= RIWAYAT BUKU (MODAL) =================
         let rawDataBuku = [];
+        
         async function loadDataBuku(force = false) {
-            const cached = sessionStorage.getItem('ahe_buku_cache'); if(cached && !force) { rawDataBuku = JSON.parse(cached); return; }
-            try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_buku`); rawDataBuku = await res.json(); sessionStorage.setItem('ahe_buku_cache', JSON.stringify(rawDataBuku)); } catch(e) {}
+            const cached = sessionStorage.getItem('ahe_buku_cache'); 
+            if(cached && !force) { rawDataBuku = JSON.parse(cached); return; }
+            try { 
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=get_buku`); 
+                rawDataBuku = await res.json(); 
+                sessionStorage.setItem('ahe_buku_cache', JSON.stringify(rawDataBuku)); 
+            } catch(e) {}
         }
         
         async function bukaModalRiwayatBuku(index) {
@@ -478,44 +503,106 @@
             document.getElementById('titleModalRiwayatBuku').innerText = "Manajemen Buku: " + selectedSiswa.nama;
             document.getElementById('modalRiwayatBuku').classList.remove('hidden');
             
-            // 1. Cek Harga Buku (Prisma 30rb, lainnya 25rb)
             let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
             document.getElementById('teksBukuHarga').innerText = formatRupiah(harga);
             
-            // 2. Cek Maksimal Level Buku (Matematika Hebat 20 level, lainnya 16 level)
             let maxLevel = selectedSiswa.kelas.toLowerCase().includes("matematika hebat") ? 20 : 16;
-            
-            // 3. Generate pilihan dropdown secara otomatis sesuai maxLevel
             let selectLevel = document.getElementById('inputBukuLevel');
             selectLevel.innerHTML = '<option value="">- Pilih Jilid/Level -</option>';
             for(let i = 1; i <= maxLevel; i++) {
                 selectLevel.innerHTML += `<option value="${i}">Level ${i}</option>`;
             }
 
-            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat...</td></tr>';
-            await loadDataBuku(false); renderTabelRiwayatBuku();
+            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
+            await loadDataBuku(false); 
+            renderTabelRiwayatBuku();
         }
-        
+
         function renderTabelRiwayatBuku() {
-            const tbody = document.getElementById('tabelRiwayatBuku'); tbody.innerHTML = '';
+            const tbody = document.getElementById('tabelRiwayatBuku'); 
+            tbody.innerHTML = '';
+            
+            if (!rawDataBuku) rawDataBuku = [];
             const riwayat = rawDataBuku.filter(b => b.nama === selectedSiswa.nama);
-            if (riwayat.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada buku dibeli.</td></tr>'; return; }
+            
+            if (riwayat.length === 0) { 
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada buku dibeli.</td></tr>'; 
+                return; 
+            }
+            
             riwayat.forEach(b => {
-                tbody.innerHTML += `<tr><td class="p-2 border-b">${new Date(b.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 border-b font-bold">Level ${b.level}</td><td class="p-2 border-b font-medium text-purple-600">${formatRupiah(b.harga)}</td><td class="p-2 border-b text-center"><button onclick="hapusBuku(${b.row_id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td class="p-2 border-b">${new Date(b.tanggal).toLocaleDateString('id-ID')}</td>
+                    <td class="p-2 border-b font-bold">Level ${b.level}</td>
+                    <td class="p-2 border-b font-medium text-purple-600">${formatRupiah(b.harga)}</td>
+                    <td class="p-2 border-b text-center whitespace-nowrap">
+                        <button type="button" onclick="cetakBuku(${b.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black mr-1" title="Cetak"><i class="fas fa-print"></i> Cetak</button>
+                        <button type="button" onclick="hapusBuku(${b.row_id})" class="text-red-500 hover:text-red-700 p-1" title="Hapus"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
             });
         }
-        async function hapusBuku(row_id) {
-            if(!confirm("Hapus catatan buku ini?")) return;
-            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Menghapus...</td></tr>';
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_buku", row_id: row_id }) }); await loadDataBuku(true); renderTabelRiwayatBuku(); } catch (e) { alert("Error"); }
+        
+        function cetakBuku(row_id) {
+            const b = rawDataBuku.find(x => x.row_id === row_id);
+            if (!b) return;
+            
+            // Masukkan data ke template struk buku
+            document.getElementById('printBukuNoKw').innerText = "AHE-BK/" + new Date(b.tanggal).getFullYear() + "/" + b.row_id;
+            document.getElementById('printBukuTanggal').innerText = new Date(b.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'});
+            document.getElementById('printBukuNama').innerText = b.nama; 
+            document.getElementById('printBukuKelas').innerText = b.kelas;
+            document.getElementById('printBukuLevel').innerText = "Level " + b.level; 
+            document.getElementById('printBukuNominal').innerText = formatRupiah(b.harga); 
+            document.getElementById('printBukuPenerima').innerText = b.penerima;
+            
+            // Munculkan print area buku lalu print
+            document.getElementById('printAreaBuku').classList.remove('hidden'); 
+            window.print(); 
+            
+            setTimeout(() => { document.getElementById('printAreaBuku').classList.add('hidden'); }, 1000);
         }
+
+        async function hapusBuku(row_id) {
+            if(!confirm("Hapus catatan pembelian buku ini?")) return;
+            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Menghapus...</td></tr>';
+            try { 
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_buku", row_id: row_id }) }); 
+                await loadDataBuku(true); 
+                renderTabelRiwayatBuku(); 
+            } catch (e) { alert("Error menghapus data."); }
+        }
+
         document.getElementById('formTambahBukuModal').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('btnSimpanBukuModal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+            e.preventDefault(); 
+            const btn = document.getElementById('btnSimpanBukuModal'); 
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...'; 
+            btn.disabled = true;
+            
             let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
             const payload = { action: "tambah_buku", nama: selectedSiswa.nama, kelas: selectedSiswa.kelas, level: document.getElementById('inputBukuLevel').value, harga: harga, penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" };
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); document.getElementById('formTambahBukuModal').reset(); await loadDataBuku(true); renderTabelRiwayatBuku(); alert("Pembelian buku dicatat!"); } 
-            catch (e) { alert("Error"); } finally { btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Pembelian'; btn.disabled = false; }
+            
+            try { 
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
+                document.getElementById('formTambahBukuModal').reset(); 
+                await loadDataBuku(true); 
+                renderTabelRiwayatBuku(); 
+                
+                // Alert otomatis menanyakan print
+                if(confirm("Pembelian buku berhasil dicatat! Ingin cetak kwitansinya sekarang?")) {
+                    const riwayatBaru = rawDataBuku.filter(b => b.nama === selectedSiswa.nama);
+                    if (riwayatBaru.length > 0) {
+                        cetakBuku(riwayatBaru[0].row_id); // 0 karena data terbaru otomatis di atas (reverse data)
+                    }
+                } 
+            } catch (e) { 
+                alert("Error saat menyimpan data."); 
+            } finally { 
+                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Pembelian'; 
+                btn.disabled = false; 
+            }
         });
+        
 
         // ================= GURU & KWITANSI (SEBELUMNYA) =================
         let rawDataGuru = []; let editModeGuru = false; let currentRowGuru = null;
