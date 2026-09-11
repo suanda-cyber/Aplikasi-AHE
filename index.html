@@ -362,12 +362,34 @@
 
         async function loadDashboard() {
             try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=get_dashboard`); const data = await res.json();
-                document.getElementById('dashSiswa').innerText = data.total_siswa + " Anak"; document.getElementById('dashGuru').innerText = data.total_guru + " Guru"; document.getElementById('dashSPP').innerText = formatRupiah(data.total_spp);
-                const tbody = document.getElementById('tabelDashTrx'); tbody.innerHTML = '';
-                if (data.recent_trx.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada transaksi SPP.</td></tr>';
-                else data.recent_trx.forEach(trx => { tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3">${new Date(trx.tanggal).toLocaleDateString('id-ID')}</td><td class="p-3 font-semibold text-gray-800">${trx.nama}</td><td class="p-3"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${trx.kelas}</span></td><td class="p-3 font-bold text-green-600 text-right">${formatRupiah(trx.nominal)}</td></tr>`; });
-            } catch(e) {}
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=get_dashboard`); 
+                const data = await res.json();
+                
+                document.getElementById('dashSiswa').innerText = data.total_siswa + " Anak"; 
+                document.getElementById('dashGuru').innerText = data.total_guru + " Guru"; 
+                
+                // Menerima total akumulasi (SPP + Buku) dari Google Script
+                document.getElementById('dashSPP').innerText = formatRupiah(data.total_pemasukan);
+
+                const tbody = document.getElementById('tabelDashTrx'); 
+                tbody.innerHTML = '';
+                
+                if (data.recent_trx.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada transaksi SPP.</td></tr>';
+                } else {
+                    data.recent_trx.forEach(trx => { 
+                        let tgl = new Date(trx.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+                        tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                            <td class="p-3">${tgl}</td>
+                            <td class="p-3 font-semibold text-gray-800">${trx.nama}</td>
+                            <td class="p-3"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${trx.kelas}</span></td>
+                            <td class="p-3 font-bold text-green-600 text-right">${formatRupiah(trx.nominal)}</td>
+                        </tr>`; 
+                    });
+                }
+            } catch(e) {
+                console.error("Gagal memuat dashboard", e);
+            }
         }
 
         // ================= KELOLA SISWA & FITUR BARU =================
