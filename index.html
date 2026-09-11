@@ -469,101 +469,118 @@
     </div>
     
 
+    <!-- ==================================================== -->
     <!-- ==================== JAVASCRIPT ==================== -->
+    <!-- ==================================================== -->
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec'; // MASUKKAN URL ANDA!
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyct6XL7La4DLPwRwDCcgRSwbupLZqfLkWKFGDp3wlwBIIp1BzmPHGOCajeIhbCWJdLig/exec'; 
 
+        // ================= MESIN ENKRIPSI (SHA-256) =================
+        async function hashPassword(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // ================= UTILS & NAVIGASI =================
         function formatRupiah(angka) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka); }
-
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebarOverlay').classList.toggle('hidden'); }
+        
         function switchPage(pageId) {
             document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
-            document.getElementById('page-' + pageId).classList.add('active');
-            document.querySelectorAll('.menu-btn').forEach(btn => { btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); btn.classList.add('text-gray-700'); });
-            document.getElementById('menu-' + pageId).classList.remove('text-gray-700'); document.getElementById('menu-' + pageId).classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+            let targetPage = document.getElementById('page-' + pageId);
+            if (targetPage) targetPage.classList.add('active');
+            
+            document.querySelectorAll('.menu-btn').forEach(btn => { 
+                btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); 
+                btn.classList.add('text-gray-700'); 
+            });
+            
+            let targetMenu = document.getElementById('menu-' + pageId);
+            if (targetMenu) {
+                targetMenu.classList.remove('text-gray-700'); 
+                targetMenu.classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu');
+            }
+            
             if(window.innerWidth < 768) toggleSidebar();
-            if (pageId === 'dashboard') loadDashboard(); else if (pageId === 'siswa') loadDataSiswa(); else if (pageId === 'guru') loadDataGuru(); else if (pageId === 'pembayaran') loadDataKwitansi(); 
-            else if (pageId === 'laporan') loadDataLaporan(); // <-- TAMBAHKAN BARIS INI
+            
+            if (pageId === 'dashboard') loadDashboard(); 
+            else if (pageId === 'siswa') loadDataSiswa(); 
+            else if (pageId === 'guru') loadDataGuru(); 
+            else if (pageId === 'pembayaran') loadDataKwitansi();
+            else if (pageId === 'laporan') loadDataLaporan();
             else if (pageId === 'admin') loadDataAdmin();
         }
 
+        // ================= LOGIN & LOGOUT =================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); const btn = document.getElementById('btnLogin'); const alertBox = document.getElementById('loginAlert');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true; alertBox.classList.add('hidden');
+            e.preventDefault(); 
+            const btn = document.getElementById('btnLogin'); 
+            const alertBox = document.getElementById('loginAlert');
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa...'; 
+            btn.disabled = true; alertBox.classList.add('hidden');
+            
             try {
-                        // ================= MESIN ENKRIPSI (SHA-256) =================
-                async function hashPassword(message) {
-                    const msgBuffer = new TextEncoder().encode(message);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                // Proses Hash Password
+                let rawPass = document.getElementById('password').value;
+                let encryptedPass = await hashPassword(rawPass); 
+                
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${document.getElementById('username').value}&password=${encryptedPass}`);
+                const result = await res.json();
+                
+                if (result.status === "sukses") {
+                    document.getElementById('login-screen').classList.add('hidden'); 
+                    document.getElementById('dashboard-screen').classList.remove('hidden'); 
+                    document.getElementById('dashboard-screen').classList.add('flex');
+                    document.getElementById('profilNama').innerText = result.nama_admin; 
+                    document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
+                    sessionStorage.setItem("ahe_logged_in", "true"); 
+                    sessionStorage.setItem("ahe_admin_name", result.nama_admin);
+                    switchPage('dashboard');
+                } else { 
+                    alertBox.innerText = result.pesan; alertBox.classList.remove('hidden'); 
                 }
-        
-                // ================= UPDATE PROSES LOGIN =================
-                document.getElementById('loginForm').addEventListener('submit', async function(e) {
-                    e.preventDefault(); const btn = document.getElementById('btnLogin'); const alertBox = document.getElementById('loginAlert');
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true; alertBox.classList.add('hidden');
-                    
-                    try {
-                        // Proses Enkripsi password saat Login
-                        const rawPass = document.getElementById('password').value;
-                        const encryptedPass = await hashPassword(rawPass); 
-                        
-                        const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${document.getElementById('username').value}&password=${encryptedPass}`);
-                        const result = await res.json();
-                        
-                        if (result.status === "sukses") {
-                            document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').classList.add('flex');
-                            document.getElementById('profilNama').innerText = result.nama_admin; document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0);
-                            sessionStorage.setItem("ahe_logged_in", "true"); sessionStorage.setItem("ahe_admin_name", result.nama_admin);
-                            switchPage('dashboard');
-                        } else { alertBox.innerText = result.pesan; alertBox.classList.remove('hidden'); }
-                    } catch (e) { alertBox.innerText = "Gagal terhubung."; alertBox.classList.remove('hidden'); } finally { btn.innerHTML = '<span>Masuk</span>'; btn.disabled = false; }
-                });
+            } catch (error) { 
+                alertBox.innerText = "Gagal terhubung. Pastikan internet aktif & dibuka lewat HTTPS (GitHub Pages)."; 
+                alertBox.classList.remove('hidden'); 
+            } finally { 
+                btn.innerHTML = '<span>Masuk</span>'; btn.disabled = false; 
+            }
+        });
 
         function logout() { sessionStorage.clear(); location.reload(); }
 
         window.onload = function() {
             if(sessionStorage.getItem("ahe_logged_in") === "true") {
-                document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').classList.add('flex');
-                document.getElementById('profilNama').innerText = sessionStorage.getItem("ahe_admin_name"); document.getElementById('profilInisial').innerText = sessionStorage.getItem("ahe_admin_name").charAt(0);
+                document.getElementById('login-screen').classList.add('hidden'); 
+                document.getElementById('dashboard-screen').classList.remove('hidden'); 
+                document.getElementById('dashboard-screen').classList.add('flex');
+                document.getElementById('profilNama').innerText = sessionStorage.getItem("ahe_admin_name"); 
+                document.getElementById('profilInisial').innerText = sessionStorage.getItem("ahe_admin_name").charAt(0);
                 switchPage('dashboard');
             }
         }
 
+        // ================= DASHBOARD =================
         async function loadDashboard() {
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=get_dashboard`); 
                 const data = await res.json();
-                
                 document.getElementById('dashSiswa').innerText = data.total_siswa + " Anak"; 
                 document.getElementById('dashGuru').innerText = data.total_guru + " Guru"; 
-                
-                // Menerima total akumulasi (SPP + Buku) dari Google Script
                 document.getElementById('dashSPP').innerText = formatRupiah(data.total_pemasukan);
-
-                const tbody = document.getElementById('tabelDashTrx'); 
-                tbody.innerHTML = '';
                 
-                if (data.recent_trx.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada transaksi SPP.</td></tr>';
-                } else {
-                    data.recent_trx.forEach(trx => { 
-                        let tgl = new Date(trx.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
-                        tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
-                            <td class="p-3">${tgl}</td>
-                            <td class="p-3 font-semibold text-gray-800">${trx.nama}</td>
-                            <td class="p-3"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${trx.kelas}</span></td>
-                            <td class="p-3 font-bold text-green-600 text-right">${formatRupiah(trx.nominal)}</td>
-                        </tr>`; 
-                    });
-                }
-            } catch(e) {
-                console.error("Gagal memuat dashboard", e);
-            }
+                const tbody = document.getElementById('tabelDashTrx'); tbody.innerHTML = '';
+                if (data.recent_trx.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada transaksi terbaru.</td></tr>';
+                else data.recent_trx.forEach(trx => { 
+                    tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3">${new Date(trx.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}</td><td class="p-3 font-semibold text-gray-800">${trx.nama}</td><td class="p-3"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${trx.kelas}</span></td><td class="p-3 font-bold text-green-600 text-right">${formatRupiah(trx.nominal)}</td></tr>`; 
+                });
+            } catch(e) {}
         }
 
-        // ================= KELOLA SISWA & FITUR BARU =================
+        // ================= KELOLA SISWA =================
         let rawDataSiswa = []; let editModeSiswa = false; let currentRowSiswa = null; let selectedSiswa = null;
 
         function bukaModalSiswa(isEdit = false) { editModeSiswa = isEdit; document.getElementById('titleModalSiswa').innerText = isEdit ? "Edit Data Siswa" : "Tambah Data Siswa"; if (!isEdit) { document.getElementById('formTambahSiswa').reset(); currentRowSiswa = null; } document.getElementById('modalSiswa').classList.remove('hidden'); }
@@ -576,21 +593,19 @@
             if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Belum ada data.</td></tr>'; return; }
             data.forEach((siswa, index) => {
                 tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-3 text-center whitespace-nowrap">${index + 1}</td>
-                    <td class="p-3 font-semibold text-gray-800 whitespace-nowrap">${siswa.nama}</td>
-                    <td class="p-3 whitespace-nowrap"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${siswa.kelas}</span></td>
-                    <td class="p-3 text-gray-600 whitespace-nowrap">${siswa.nama_ortu}</td>
-                    <td class="p-3 text-gray-600 whitespace-nowrap">${siswa.no_telp}</td>
+                    <td class="p-3 text-center">${index + 1}</td><td class="p-3 font-semibold">${siswa.nama}</td>
+                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 py-1 px-3 rounded-full text-xs font-medium">${siswa.kelas}</span></td>
+                    <td class="p-3 text-gray-600">${siswa.nama_ortu}</td><td class="p-3 text-gray-600">${siswa.no_telp}</td>
                     <td class="p-3 text-center whitespace-nowrap">
-                        <button onclick="bukaModalRiwayatSPP(${index})" class="bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1.5 rounded text-xs mr-1 font-semibold"><i class="fas fa-money-bill-wave"></i> SPP</button>
-                        <button onclick="bukaModalRiwayatBuku(${index})" class="bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1.5 rounded text-xs mr-3 font-semibold"><i class="fas fa-book"></i> BUKU</button>
+                        <button onclick="bukaModalRiwayatSPP(${index})" class="bg-green-100 text-green-700 px-2 py-1.5 rounded text-xs mr-1"><i class="fas fa-money-bill-wave"></i> SPP</button>
+                        <button onclick="bukaModalRiwayatBuku(${index})" class="bg-purple-100 text-purple-700 px-2 py-1.5 rounded text-xs mr-3"><i class="fas fa-book"></i> BUKU</button>
                         <button onclick="siapkanEditSiswa(${index})" class="text-blue-500 hover:text-blue-700 mx-1"><i class="fas fa-edit"></i></button>
                         <button onclick="hapusSiswa(${siswa.row_id})" class="text-red-500 hover:text-red-700 mx-1"><i class="fas fa-trash-alt"></i></button>
                     </td></tr>`;
             });
         }
-        async function loadDataSiswa(forceRefresh = false) { const cached = sessionStorage.getItem('ahe_siswa_cache'); if (cached && !forceRefresh) { renderTabelSiswa(JSON.parse(cached)); fetchSiswaDariServer(true); return; } document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>'; await fetchSiswaDariServer(false); }
-        async function fetchSiswaDariServer(isBg) { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_siswa`); const data = await res.json(); sessionStorage.setItem('ahe_siswa_cache', JSON.stringify(data)); renderTabelSiswa(data); } catch (e) { if (!isBg) document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat.</td></tr>'; } }
+        async function loadDataSiswa(force = false) { const cached = sessionStorage.getItem('ahe_siswa_cache'); if (cached && !force) { renderTabelSiswa(JSON.parse(cached)); fetchSiswaDariServer(true); return; } document.getElementById('tabelSiswa').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>'; await fetchSiswaDariServer(false); }
+        async function fetchSiswaDariServer(isBg) { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_siswa`); const data = await res.json(); sessionStorage.setItem('ahe_siswa_cache', JSON.stringify(data)); renderTabelSiswa(data); } catch (e) {} }
 
         document.getElementById('formTambahSiswa').addEventListener('submit', async function(e) {
             e.preventDefault(); const btn = document.getElementById('btnSimpanSiswa'); btn.innerHTML = '...'; btn.disabled = true;
@@ -599,205 +614,85 @@
         });
 
         // ================= RIWAYAT SPP (MODAL) =================
-        
+        let rawDataKwitansi = [];
         async function bukaModalRiwayatSPP(index) {
-            try {
-                selectedSiswa = rawDataSiswa[index];
-                document.getElementById('titleModalRiwayatSPP').innerText = "Riwayat SPP: " + selectedSiswa.nama;
-                document.getElementById('modalRiwayatSPP').classList.remove('hidden');
-                document.getElementById('tabelRiwayatSPP').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
-                
-                await loadDataKwitansi(false); 
-                renderTabelRiwayatSPP();
-            } catch (error) {
-                alert("Mohon tunggu sebentar, sistem sedang memuat data...");
-            }
+            selectedSiswa = rawDataSiswa[index];
+            document.getElementById('titleModalRiwayatSPP').innerText = "Riwayat SPP: " + selectedSiswa.nama;
+            document.getElementById('modalRiwayatSPP').classList.remove('hidden');
+            document.getElementById('tabelRiwayatSPP').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
+            await loadDataKwitansi(false); renderTabelRiwayatSPP();
         }
-
         function renderTabelRiwayatSPP() {
-            const tbody = document.getElementById('tabelRiwayatSPP'); 
-            tbody.innerHTML = '';
-            
-            // Pengamanan agar tidak error saat data masih kosong
+            const tbody = document.getElementById('tabelRiwayatSPP'); tbody.innerHTML = '';
             if (!rawDataKwitansi) rawDataKwitansi = []; 
-            
             const riwayat = rawDataKwitansi.filter(k => k.nama === selectedSiswa.nama);
-            
-            if (riwayat.length === 0) { 
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada riwayat SPP untuk siswa ini.</td></tr>'; 
-                return; 
-            }
-            
+            if (riwayat.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada riwayat SPP.</td></tr>'; return; }
             riwayat.forEach(k => {
-                let tgl = new Date(k.tanggal).toLocaleDateString('id-ID');
-                tbody.innerHTML += `<tr>
-                    <td class="p-2 border-b">${tgl}</td>
-                    <td class="p-2 border-b font-medium">${k.bulan}</td>
-                    <td class="p-2 border-b text-green-600 font-bold">${formatRupiah(k.nominal)}</td>
-                    <td class="p-2 border-b text-center">
-                        <button type="button" onclick="cetakDariRiwayat(${k.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black"><i class="fas fa-print"></i> Cetak</button>
-                    </td>
-                </tr>`;
+                tbody.innerHTML += `<tr><td class="p-2 border-b">${new Date(k.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 border-b font-medium">${k.bulan}</td><td class="p-2 border-b text-green-600 font-bold">${formatRupiah(k.nominal)}</td><td class="p-2 border-b text-center"><button type="button" onclick="cetakDariRiwayat(${k.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black"><i class="fas fa-print"></i> Cetak</button></td></tr>`;
             });
         }
-
-        function cetakDariRiwayat(row_id) { 
-            const idx = rawDataKwitansi.findIndex(k => k.row_id === row_id); 
-            if(idx !== -1) cetakKwitansi(idx); 
-        }
+        function cetakDariRiwayat(row_id) { const idx = rawDataKwitansi.findIndex(k => k.row_id === row_id); if(idx !== -1) cetakKwitansi(idx); }
 
         document.getElementById('formTambahSPPModal').addEventListener('submit', async function(e) {
-            e.preventDefault(); 
-            const btn = document.getElementById('btnSimpanSPPModal'); 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...'; 
-            btn.disabled = true;
-            
-            const payload = { 
-                action: "tambah_kwitansi", 
-                nama: selectedSiswa.nama, 
-                kelas: selectedSiswa.kelas, 
-                bulan: document.getElementById('inputSPPModalBulan').value, 
-                nominal: document.getElementById('inputSPPModalNominal').value, 
-                penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" 
-            };
-            
+            e.preventDefault(); const btn = document.getElementById('btnSimpanSPPModal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+            const payload = { action: "tambah_kwitansi", nama: selectedSiswa.nama, kelas: selectedSiswa.kelas, bulan: document.getElementById('inputSPPModalBulan').value, nominal: document.getElementById('inputSPPModalNominal').value, penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" };
             try { 
                 await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
-                document.getElementById('formTambahSPPModal').reset(); 
-                await loadDataKwitansi(true); 
-                renderTabelRiwayatSPP();
-                
-                if(confirm("SPP Tersimpan! Ingin cetak struknya sekarang?")) { 
-                    cetakKwitansi(0); // 0 karena data terbaru otomatis berada di urutan paling atas
-                } 
-            } catch (e) { 
-                alert("Gagal menyimpan SPP, periksa koneksi internet Anda."); 
-            } finally { 
-                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan & Cetak'; 
-                btn.disabled = false; 
-            }
+                document.getElementById('formTambahSPPModal').reset(); await loadDataKwitansi(true); renderTabelRiwayatSPP();
+                if(confirm("Tersimpan! Ingin cetak struknya sekarang?")) { cetakKwitansi(0); } 
+            } catch (e) { alert("Error"); } finally { btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan & Cetak'; btn.disabled = false; }
         });
 
         // ================= RIWAYAT BUKU (MODAL) =================
         let rawDataBuku = [];
-        
         async function loadDataBuku(force = false) {
-            const cached = sessionStorage.getItem('ahe_buku_cache'); 
-            if(cached && !force) { rawDataBuku = JSON.parse(cached); return; }
-            try { 
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=get_buku`); 
-                rawDataBuku = await res.json(); 
-                sessionStorage.setItem('ahe_buku_cache', JSON.stringify(rawDataBuku)); 
-            } catch(e) {}
+            const cached = sessionStorage.getItem('ahe_buku_cache'); if(cached && !force) { rawDataBuku = JSON.parse(cached); return; }
+            try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_buku`); rawDataBuku = await res.json(); sessionStorage.setItem('ahe_buku_cache', JSON.stringify(rawDataBuku)); } catch(e) {}
         }
-        
         async function bukaModalRiwayatBuku(index) {
             selectedSiswa = rawDataSiswa[index];
             document.getElementById('titleModalRiwayatBuku').innerText = "Manajemen Buku: " + selectedSiswa.nama;
             document.getElementById('modalRiwayatBuku').classList.remove('hidden');
-            
             let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
             document.getElementById('teksBukuHarga').innerText = formatRupiah(harga);
             
             let maxLevel = selectedSiswa.kelas.toLowerCase().includes("matematika hebat") ? 20 : 16;
-            let selectLevel = document.getElementById('inputBukuLevel');
-            selectLevel.innerHTML = '<option value="">- Pilih Jilid/Level -</option>';
-            for(let i = 1; i <= maxLevel; i++) {
-                selectLevel.innerHTML += `<option value="${i}">Level ${i}</option>`;
-            }
-
-            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
-            await loadDataBuku(false); 
-            renderTabelRiwayatBuku();
-        }
-
-        function renderTabelRiwayatBuku() {
-            const tbody = document.getElementById('tabelRiwayatBuku'); 
-            tbody.innerHTML = '';
+            let selectLevel = document.getElementById('inputBukuLevel'); selectLevel.innerHTML = '<option value="">- Pilih Jilid/Level -</option>';
+            for(let i = 1; i <= maxLevel; i++) selectLevel.innerHTML += `<option value="${i}">Level ${i}</option>`;
             
+            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4">Memuat data...</td></tr>';
+            await loadDataBuku(false); renderTabelRiwayatBuku();
+        }
+        function renderTabelRiwayatBuku() {
+            const tbody = document.getElementById('tabelRiwayatBuku'); tbody.innerHTML = '';
             if (!rawDataBuku) rawDataBuku = [];
             const riwayat = rawDataBuku.filter(b => b.nama === selectedSiswa.nama);
-            
-            if (riwayat.length === 0) { 
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada buku dibeli.</td></tr>'; 
-                return; 
-            }
-            
+            if (riwayat.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Belum ada buku dibeli.</td></tr>'; return; }
             riwayat.forEach(b => {
-                tbody.innerHTML += `<tr>
-                    <td class="p-2 border-b">${new Date(b.tanggal).toLocaleDateString('id-ID')}</td>
-                    <td class="p-2 border-b font-bold">Level ${b.level}</td>
-                    <td class="p-2 border-b font-medium text-purple-600">${formatRupiah(b.harga)}</td>
-                    <td class="p-2 border-b text-center whitespace-nowrap">
-                        <button type="button" onclick="cetakBuku(${b.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded hover:bg-black mr-1" title="Cetak"><i class="fas fa-print"></i> Cetak</button>
-                        <button type="button" onclick="hapusBuku(${b.row_id})" class="text-red-500 hover:text-red-700 p-1" title="Hapus"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
+                tbody.innerHTML += `<tr><td class="p-2 border-b">${new Date(b.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 border-b font-bold">Level ${b.level}</td><td class="p-2 border-b font-medium text-purple-600">${formatRupiah(b.harga)}</td><td class="p-2 border-b text-center"><button type="button" onclick="cetakBuku(${b.row_id})" class="text-xs bg-gray-800 text-white px-2 py-1 rounded mr-1"><i class="fas fa-print"></i> Cetak</button><button type="button" onclick="hapusBuku(${b.row_id})" class="text-red-500 hover:text-red-700 p-1"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
-        
         function cetakBuku(row_id) {
-            const b = rawDataBuku.find(x => x.row_id === row_id);
-            if (!b) return;
-            
-            // Masukkan data ke template struk buku
+            const b = rawDataBuku.find(x => x.row_id === row_id); if (!b) return;
             document.getElementById('printBukuNoKw').innerText = "AHE-BK/" + new Date(b.tanggal).getFullYear() + "/" + b.row_id;
             document.getElementById('printBukuTanggal').innerText = new Date(b.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'});
-            document.getElementById('printBukuNama').innerText = b.nama; 
-            document.getElementById('printBukuKelas').innerText = b.kelas;
-            document.getElementById('printBukuLevel').innerText = "Level " + b.level; 
-            document.getElementById('printBukuNominal').innerText = formatRupiah(b.harga); 
-            document.getElementById('printBukuPenerima').innerText = b.penerima;
-            
-            // Munculkan print area buku lalu print
-            document.getElementById('printAreaBuku').classList.remove('hidden'); 
-            window.print(); 
-            
-            setTimeout(() => { document.getElementById('printAreaBuku').classList.add('hidden'); }, 1000);
+            document.getElementById('printBukuNama').innerText = b.nama; document.getElementById('printBukuKelas').innerText = b.kelas;
+            document.getElementById('printBukuLevel').innerText = "Level " + b.level; document.getElementById('printBukuNominal').innerText = formatRupiah(b.harga); document.getElementById('printBukuPenerima').innerText = b.penerima;
+            document.getElementById('printAreaBuku').classList.remove('hidden'); window.print(); setTimeout(() => { document.getElementById('printAreaBuku').classList.add('hidden'); }, 1000);
         }
-
-        async function hapusBuku(row_id) {
-            if(!confirm("Hapus catatan pembelian buku ini?")) return;
-            document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Menghapus...</td></tr>';
-            try { 
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_buku", row_id: row_id }) }); 
-                await loadDataBuku(true); 
-                renderTabelRiwayatBuku(); 
-            } catch (e) { alert("Error menghapus data."); }
-        }
-
+        async function hapusBuku(row_id) { if(!confirm("Hapus catatan buku ini?")) return; document.getElementById('tabelRiwayatBuku').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Menghapus...</td></tr>'; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_buku", row_id: row_id }) }); await loadDataBuku(true); renderTabelRiwayatBuku(); } catch (e) {} }
+        
         document.getElementById('formTambahBukuModal').addEventListener('submit', async function(e) {
-            e.preventDefault(); 
-            const btn = document.getElementById('btnSimpanBukuModal'); 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...'; 
-            btn.disabled = true;
-            
+            e.preventDefault(); const btn = document.getElementById('btnSimpanBukuModal'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
             let harga = selectedSiswa.kelas.toLowerCase().includes("prisma kalkulator tangan") ? 30000 : 25000;
             const payload = { action: "tambah_buku", nama: selectedSiswa.nama, kelas: selectedSiswa.kelas, level: document.getElementById('inputBukuLevel').value, harga: harga, penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" };
-            
             try { 
-                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
-                document.getElementById('formTambahBukuModal').reset(); 
-                await loadDataBuku(true); 
-                renderTabelRiwayatBuku(); 
-                
-                // Alert otomatis menanyakan print
-                if(confirm("Pembelian buku berhasil dicatat! Ingin cetak kwitansinya sekarang?")) {
-                    const riwayatBaru = rawDataBuku.filter(b => b.nama === selectedSiswa.nama);
-                    if (riwayatBaru.length > 0) {
-                        cetakBuku(riwayatBaru[0].row_id); // 0 karena data terbaru otomatis di atas (reverse data)
-                    }
-                } 
-            } catch (e) { 
-                alert("Error saat menyimpan data."); 
-            } finally { 
-                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Pembelian'; 
-                btn.disabled = false; 
-            }
+                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); document.getElementById('formTambahBukuModal').reset(); await loadDataBuku(true); renderTabelRiwayatBuku(); 
+                if(confirm("Berhasil! Ingin cetak kwitansi buku?")) { const riwayatBaru = rawDataBuku.filter(b => b.nama === selectedSiswa.nama); if (riwayatBaru.length > 0) cetakBuku(riwayatBaru[0].row_id); } 
+            } catch (e) { alert("Error"); } finally { btn.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Pembelian'; btn.disabled = false; }
         });
-        
 
-        // ================= GURU & KWITANSI (SEBELUMNYA) =================
+        // ================= GURU & KWITANSI UTAMA =================
         let rawDataGuru = []; let editModeGuru = false; let currentRowGuru = null;
         function bukaModalGuru(isEdit = false) { editModeGuru = isEdit; document.getElementById('titleModalGuru').innerText = isEdit ? "Edit Guru" : "Tambah Guru"; if (!isEdit) { document.getElementById('formTambahGuru').reset(); currentRowGuru = null; } document.getElementById('modalGuru').classList.remove('hidden'); }
         function tutupModalGuru() { document.getElementById('modalGuru').classList.add('hidden'); }
@@ -808,7 +703,6 @@
         async function fetchGuruDariServer(isBg) { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_guru`); const data = await res.json(); sessionStorage.setItem('ahe_guru_cache', JSON.stringify(data)); renderTabelGuru(data); } catch (e) {} }
         document.getElementById('formTambahGuru').addEventListener('submit', async function(e) { e.preventDefault(); const btn = document.getElementById('btnSimpanGuru'); btn.innerHTML = '...'; btn.disabled = true; const p = { action: editModeGuru ? "edit_guru" : "tambah_guru", row_id: currentRowGuru, nama: document.getElementById('inputNamaGuru').value, alamat: document.getElementById('inputAlamatGuru').value, pendidikan: document.getElementById('inputPendidikanGuru').value, no_telp: document.getElementById('inputTelpGuru').value }; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(p) }); tutupModalGuru(); setTimeout(() => loadDataGuru(true), 1500); } catch (e) {} finally { btn.innerHTML = 'Simpan'; btn.disabled = false; } });
 
-        let rawDataKwitansi = [];
         async function bukaModalKwitansi() { document.getElementById('formTambahKwitansi').reset(); document.getElementById('inputKwKelas').value = ""; document.getElementById('modalKwitansi').classList.remove('hidden'); await populateDatalistSiswa(); }
         function tutupModalKwitansi() { document.getElementById('modalKwitansi').classList.add('hidden'); }
         async function populateDatalistSiswa() { const datalist = document.getElementById('listSiswa'); let dataSiswa = []; const cached = sessionStorage.getItem('ahe_siswa_cache'); if (cached) { dataSiswa = JSON.parse(cached); } else { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_siswa`); dataSiswa = await res.json(); sessionStorage.setItem('ahe_siswa_cache', JSON.stringify(dataSiswa)); } catch (e) { return; } } datalist.innerHTML = ''; dataSiswa.forEach(s => { datalist.innerHTML += `<option value="${s.nama}" data-kelas="${s.kelas}">`; }); }
@@ -827,215 +721,26 @@
         async function loadDataKwitansi(force = false) { const cached = sessionStorage.getItem('ahe_kwitansi_cache'); if (cached && !force) { renderTabelKwitansi(JSON.parse(cached)); fetchKwitansiDariServer(true); return; } await fetchKwitansiDariServer(false); }
         async function fetchKwitansiDariServer(isBg) { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_kwitansi`); const data = await res.json(); sessionStorage.setItem('ahe_kwitansi_cache', JSON.stringify(data)); renderTabelKwitansi(data); } catch (e) {} }
         document.getElementById('formTambahKwitansi').addEventListener('submit', async function(e) { e.preventDefault(); const btn = document.getElementById('btnSimpanKwitansi'); btn.innerHTML = '...'; btn.disabled = true; const p = { action: "tambah_kwitansi", nama: document.getElementById('inputKwNama').value, kelas: document.getElementById('inputKwKelas').value, bulan: document.getElementById('inputKwBulan').value, nominal: document.getElementById('inputKwNominal').value, penerima: sessionStorage.getItem("ahe_admin_name") || "Admin" }; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(p) }); tutupModalKwitansi(); setTimeout(() => loadDataKwitansi(true), 1500); } catch (e) {} finally { btn.innerHTML = 'Simpan & Cetak'; btn.disabled = false; } });
-    
-    // ================= FITUR LAPORAN KEUANGAN =================
-        let rawDataLaporan = [];
-        let filteredLaporan = [];
 
-        async function loadDataLaporan() {
-            document.getElementById('tabelLaporan').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data laporan...</td></tr>';
-            try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=get_laporan`);
-                rawDataLaporan = await res.json();
-                
-                // Set default tanggal filter ke hari ini
-                resetFilterLaporan();
-            } catch (e) {
-                document.getElementById('tabelLaporan').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat data laporan.</td></tr>';
-            }
-        }
+        // ================= LAPORAN KEUANGAN =================
+        let rawDataLaporan = []; let filteredLaporan = [];
+        async function loadDataLaporan() { document.getElementById('tabelLaporan').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data laporan...</td></tr>'; try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_laporan`); rawDataLaporan = await res.json(); resetFilterLaporan(); } catch (e) { document.getElementById('tabelLaporan').innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat data laporan.</td></tr>'; } }
+        function filterCepat(tipe) { const today = new Date(); const y = today.getFullYear(); const m = String(today.getMonth() + 1).padStart(2, '0'); const d = String(today.getDate()).padStart(2, '0'); const strToday = `${y}-${m}-${d}`; if (tipe === 'hari_ini') { document.getElementById('filterMulai').value = strToday; document.getElementById('filterSelesai').value = strToday; } else if (tipe === 'bulan_ini') { document.getElementById('filterMulai').value = `${y}-${m}-01`; const lastDay = new Date(y, today.getMonth() + 1, 0).getDate(); document.getElementById('filterSelesai').value = `${y}-${m}-${lastDay}`; } terapkanFilterLaporan(); }
+        function resetFilterLaporan() { document.getElementById('filterMulai').value = ''; document.getElementById('filterSelesai').value = ''; filteredLaporan = [...rawDataLaporan]; renderTabelLaporan(); }
+        function terapkanFilterLaporan() { const tMulai = document.getElementById('filterMulai').value; const tSelesai = document.getElementById('filterSelesai').value; filteredLaporan = rawDataLaporan.filter(item => { let isValid = true; const dateItem = new Date(item.tanggal).setHours(0,0,0,0); if (tMulai) { if (dateItem < new Date(tMulai).setHours(0,0,0,0)) isValid = false; } if (tSelesai) { if (dateItem > new Date(tSelesai).setHours(0,0,0,0)) isValid = false; } return isValid; }); renderTabelLaporan(); }
+        function renderTabelLaporan() { const tbody = document.getElementById('tabelLaporan'); tbody.innerHTML = ''; let tSPP = 0; let tBuku = 0; if (filteredLaporan.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Tidak ada transaksi.</td></tr>'; } else { filteredLaporan.forEach(item => { if (item.jenis === "SPP") tSPP += item.nominal; if (item.jenis === "Buku") tBuku += item.nominal; let bg = item.jenis === "SPP" ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700"; tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3">${new Date(item.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}</td><td class="p-3"><span class="${bg} px-2 py-1 rounded text-xs font-bold">${item.jenis}</span></td><td class="p-3 font-semibold">${item.nama}</td><td class="p-3 text-gray-600">${item.deskripsi}</td><td class="p-3 text-right font-bold">${formatRupiah(item.nominal)}</td><td class="p-3 text-center text-xs text-gray-500">${item.penerima}</td></tr>`; }); } document.getElementById('lapTotalSPP').innerText = formatRupiah(tSPP); document.getElementById('lapTotalBuku').innerText = formatRupiah(tBuku); document.getElementById('lapGrandTotal').innerText = formatRupiah(tSPP + tBuku); }
+        function cetakLaporanKeuangan() { if (filteredLaporan.length === 0) { alert("Tidak ada data untuk dicetak."); return; } let tMulai = document.getElementById('filterMulai').value; let tSelesai = document.getElementById('filterSelesai').value; let teks = "Semua Waktu"; if (tMulai && tSelesai) { teks = `${new Date(tMulai).toLocaleDateString('id-ID')} s/d ${new Date(tSelesai).toLocaleDateString('id-ID')}`; } else if (tMulai) { teks = `Mulai ${new Date(tMulai).toLocaleDateString('id-ID')}`; } document.getElementById('printLapPeriode').innerText = teks; document.getElementById('printLapTglCetak').innerText = new Date().toLocaleString('id-ID'); document.getElementById('printLapSPP').innerText = document.getElementById('lapTotalSPP').innerText; document.getElementById('printLapBuku').innerText = document.getElementById('lapTotalBuku').innerText; document.getElementById('printLapGrandTotal').innerText = document.getElementById('lapGrandTotal').innerText; const tbodyPrint = document.getElementById('printLapTabel'); tbodyPrint.innerHTML = ''; filteredLaporan.forEach(item => { tbodyPrint.innerHTML += `<tr><td class="p-2 border border-gray-300">${new Date(item.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}</td><td class="p-2 border border-gray-300 font-semibold">${item.jenis}</td><td class="p-2 border border-gray-300">${item.nama}</td><td class="p-2 border border-gray-300">${item.deskripsi}</td><td class="p-2 border border-gray-300 text-right">${formatRupiah(item.nominal)}</td></tr>`; }); document.getElementById('printAreaLaporan').classList.remove('hidden'); window.print(); setTimeout(() => { document.getElementById('printAreaLaporan').classList.add('hidden'); }, 1000); }
 
-        function filterCepat(tipe) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            
-            const strToday = `${year}-${month}-${day}`;
-            
-            if (tipe === 'hari_ini') {
-                document.getElementById('filterMulai').value = strToday;
-                document.getElementById('filterSelesai').value = strToday;
-            } else if (tipe === 'bulan_ini') {
-                document.getElementById('filterMulai').value = `${year}-${month}-01`;
-                // Menentukan hari terakhir bulan ini
-                const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
-                document.getElementById('filterSelesai').value = `${year}-${month}-${lastDay}`;
-            }
-            terapkanFilterLaporan();
-        }
-
-        function resetFilterLaporan() {
-            document.getElementById('filterMulai').value = '';
-            document.getElementById('filterSelesai').value = '';
-            filteredLaporan = [...rawDataLaporan]; // Copy semua data
-            renderTabelLaporan();
-        }
-
-        function terapkanFilterLaporan() {
-            const tglMulai = document.getElementById('filterMulai').value;
-            const tglSelesai = document.getElementById('filterSelesai').value;
-            
-            filteredLaporan = rawDataLaporan.filter(item => {
-                let isValid = true;
-                const dateItem = new Date(item.tanggal).setHours(0,0,0,0);
-                
-                if (tglMulai) {
-                    const dateMulai = new Date(tglMulai).setHours(0,0,0,0);
-                    if (dateItem < dateMulai) isValid = false;
-                }
-                if (tglSelesai) {
-                    const dateSelesai = new Date(tglSelesai).setHours(0,0,0,0);
-                    if (dateItem > dateSelesai) isValid = false;
-                }
-                return isValid;
-            });
-            
-            renderTabelLaporan();
-        }
-
-        function renderTabelLaporan() {
-            const tbody = document.getElementById('tabelLaporan');
-            tbody.innerHTML = '';
-            
-            let totalSPP = 0;
-            let totalBuku = 0;
-
-            if (filteredLaporan.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-gray-500">Tidak ada transaksi pada periode ini.</td></tr>';
-            } else {
-                filteredLaporan.forEach(item => {
-                    if (item.jenis === "SPP") totalSPP += item.nominal;
-                    if (item.jenis === "Buku") totalBuku += item.nominal;
-                    
-                    let badgeColor = item.jenis === "SPP" ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700";
-                    let tgl = new Date(item.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
-                    
-                    tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3">${tgl}</td>
-                        <td class="p-3"><span class="${badgeColor} px-2 py-1 rounded text-xs font-bold">${item.jenis}</span></td>
-                        <td class="p-3 font-semibold">${item.nama}</td>
-                        <td class="p-3 text-gray-600">${item.deskripsi}</td>
-                        <td class="p-3 text-right font-bold">${formatRupiah(item.nominal)}</td>
-                        <td class="p-3 text-center text-xs text-gray-500">${item.penerima}</td>
-                    </tr>`;
-                });
-            }
-
-            // Update Kartu Ringkasan
-            document.getElementById('lapTotalSPP').innerText = formatRupiah(totalSPP);
-            document.getElementById('lapTotalBuku').innerText = formatRupiah(totalBuku);
-            document.getElementById('lapGrandTotal').innerText = formatRupiah(totalSPP + totalBuku);
-        }
-
-        function cetakLaporanKeuangan() {
-            if (filteredLaporan.length === 0) {
-                alert("Tidak ada data untuk dicetak pada periode ini.");
-                return;
-            }
-            
-            // Atur Header Laporan
-            let tglMulai = document.getElementById('filterMulai').value;
-            let tglSelesai = document.getElementById('filterSelesai').value;
-            let teksPeriode = "Semua Waktu";
-            
-            if (tglMulai && tglSelesai) {
-                teksPeriode = `${new Date(tglMulai).toLocaleDateString('id-ID')} s/d ${new Date(tglSelesai).toLocaleDateString('id-ID')}`;
-            } else if (tglMulai) {
-                teksPeriode = `Mulai ${new Date(tglMulai).toLocaleDateString('id-ID')}`;
-            }
-            
-            document.getElementById('printLapPeriode').innerText = teksPeriode;
-            document.getElementById('printLapTglCetak').innerText = new Date().toLocaleString('id-ID');
-            
-            document.getElementById('printLapSPP').innerText = document.getElementById('lapTotalSPP').innerText;
-            document.getElementById('printLapBuku').innerText = document.getElementById('lapTotalBuku').innerText;
-            document.getElementById('printLapGrandTotal').innerText = document.getElementById('lapGrandTotal').innerText;
-            
-            // Isi Tabel Cetak
-            const tbodyPrint = document.getElementById('printLapTabel');
-            tbodyPrint.innerHTML = '';
-            
-            filteredLaporan.forEach(item => {
-                let tgl = new Date(item.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
-                tbodyPrint.innerHTML += `<tr>
-                    <td class="p-2 border border-gray-300">${tgl}</td>
-                    <td class="p-2 border border-gray-300 font-semibold">${item.jenis}</td>
-                    <td class="p-2 border border-gray-300">${item.nama}</td>
-                    <td class="p-2 border border-gray-300">${item.deskripsi}</td>
-                    <td class="p-2 border border-gray-300 text-right">${formatRupiah(item.nominal)}</td>
-                </tr>`;
-            });
-            
-            document.getElementById('printAreaLaporan').classList.remove('hidden');
-            window.print();
-            setTimeout(() => { document.getElementById('printAreaLaporan').classList.add('hidden'); }, 1000);
-        }
-
-
-        // ================= FITUR KELOLA ADMIN =================
+        // ================= KELOLA ADMIN =================
         let rawDataAdmin = []; let editModeAdmin = false; let currentRowAdmin = null;
-        
-        function bukaModalAdmin(isEdit = false) { 
-            editModeAdmin = isEdit; 
-            document.getElementById('titleModalAdmin').innerText = isEdit ? "Edit Admin" : "Tambah Admin Baru"; 
-            let passInput = document.getElementById('inputAdminPassword');
-            if (!isEdit) { 
-                document.getElementById('formTambahAdmin').reset(); currentRowAdmin = null; 
-                passInput.required = true; passInput.placeholder = "Ketik password baru...";
-            } 
-            document.getElementById('modalAdmin').classList.remove('hidden'); 
-        }
+        function bukaModalAdmin(isEdit = false) { editModeAdmin = isEdit; document.getElementById('titleModalAdmin').innerText = isEdit ? "Edit Admin" : "Tambah Admin Baru"; let passInput = document.getElementById('inputAdminPassword'); if (!isEdit) { document.getElementById('formTambahAdmin').reset(); currentRowAdmin = null; passInput.required = true; passInput.placeholder = "Ketik password baru..."; } document.getElementById('modalAdmin').classList.remove('hidden'); }
         function tutupModalAdmin() { document.getElementById('modalAdmin').classList.add('hidden'); }
-        
-        function siapkanEditAdmin(index) { 
-            let adm = rawDataAdmin[index]; currentRowAdmin = adm.row_id; 
-            document.getElementById('inputAdminUsername').value = adm.username; 
-            document.getElementById('inputAdminNama').value = adm.nama; 
-            
-            let passInput = document.getElementById('inputAdminPassword');
-            passInput.value = ''; passInput.required = false;
-            passInput.placeholder = "(Kosongkan jika tidak ubah password)";
-            bukaModalAdmin(true); 
-        }
-        
-        async function hapusAdmin(row_id) { 
-            if (rawDataAdmin.length <= 1) { alert("Dilarang menghapus! Harus tersisa minimal 1 admin."); return; }
-            if (!confirm("Yakin ingin menghapus akun admin ini?")) return; 
-            document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-red-500">Menghapus...</td></tr>'; 
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_admin", row_id: row_id }) }); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { loadDataAdmin(true); } 
-        }
-
-        function renderTabelAdmin(data) { 
-            rawDataAdmin = data; const tbody = document.getElementById('tabelAdmin'); tbody.innerHTML = ''; 
-            data.forEach((adm, i) => { 
-                tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3 text-center">${i + 1}</td><td class="p-3 font-semibold text-gray-800">${adm.nama}</td><td class="p-3 font-medium text-indigo-600">${adm.username}</td><td class="p-3 text-center"><button onclick="siapkanEditAdmin(${i})" class="text-blue-500 mx-1" title="Edit"><i class="fas fa-edit"></i></button><button onclick="hapusAdmin(${adm.row_id})" class="text-red-500 mx-1" title="Hapus"><i class="fas fa-trash-alt"></i></button></td></tr>`; 
-            }); 
-        }
-        
-        async function loadDataAdmin(force = false) { 
-            const cached = sessionStorage.getItem('ahe_admin_cache'); 
-            if (cached && !force) { renderTabelAdmin(JSON.parse(cached)); fetchAdminDariServer(true); return; } 
-            document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>'; 
-            await fetchAdminDariServer(false); 
-        }
-        
-        async function fetchAdminDariServer(isBg) { 
-            try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_admin`); const data = await res.json(); sessionStorage.setItem('ahe_admin_cache', JSON.stringify(data)); renderTabelAdmin(data); } catch (e) {} 
-        }
-        
-        document.getElementById('formTambahAdmin').addEventListener('submit', async function(e) { 
-            e.preventDefault(); const btn = document.getElementById('btnSimpanAdmin'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; 
-            
-            // Proses Hash Password sebelum kirim ke server
-            let rawPass = document.getElementById('inputAdminPassword').value;
-            let encryptedPass = rawPass ? await hashPassword(rawPass) : ""; 
-            
-            const payload = { action: editModeAdmin ? "edit_admin" : "tambah_admin", row_id: currentRowAdmin, username: document.getElementById('inputAdminUsername').value, nama: document.getElementById('inputAdminNama').value, password: encryptedPass }; 
-            
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); alert("Berhasil disimpan!"); tutupModalAdmin(); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { alert("Error.");} finally { btn.innerHTML = 'Simpan'; btn.disabled = false; } 
-        });
-                
+        function siapkanEditAdmin(index) { let adm = rawDataAdmin[index]; currentRowAdmin = adm.row_id; document.getElementById('inputAdminUsername').value = adm.username; document.getElementById('inputAdminNama').value = adm.nama; let passInput = document.getElementById('inputAdminPassword'); passInput.value = ''; passInput.required = false; passInput.placeholder = "(Kosongkan jika tidak ubah password)"; bukaModalAdmin(true); }
+        async function hapusAdmin(row_id) { if (rawDataAdmin.length <= 1) { alert("Dilarang menghapus! Harus tersisa minimal 1 admin."); return; } if (!confirm("Yakin hapus admin ini?")) return; document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-red-500">Menghapus...</td></tr>'; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "hapus_admin", row_id: row_id }) }); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { loadDataAdmin(true); } }
+        function renderTabelAdmin(data) { rawDataAdmin = data; const tbody = document.getElementById('tabelAdmin'); tbody.innerHTML = ''; data.forEach((adm, i) => { tbody.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-3 text-center">${i + 1}</td><td class="p-3 font-semibold">${adm.nama}</td><td class="p-3 text-indigo-600 font-medium">${adm.username}</td><td class="p-3 text-center"><button onclick="siapkanEditAdmin(${i})" class="text-blue-500 mx-1"><i class="fas fa-edit"></i></button><button onclick="hapusAdmin(${adm.row_id})" class="text-red-500 mx-1"><i class="fas fa-trash-alt"></i></button></td></tr>`; }); }
+        async function loadDataAdmin(force = false) { const cached = sessionStorage.getItem('ahe_admin_cache'); if (cached && !force) { renderTabelAdmin(JSON.parse(cached)); fetchAdminDariServer(true); return; } document.getElementById('tabelAdmin').innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>'; await fetchAdminDariServer(false); }
+        async function fetchAdminDariServer(isBg) { try { const res = await fetch(`${APPS_SCRIPT_URL}?action=get_admin`); const data = await res.json(); sessionStorage.setItem('ahe_admin_cache', JSON.stringify(data)); renderTabelAdmin(data); } catch (e) {} }
+        document.getElementById('formTambahAdmin').addEventListener('submit', async function(e) { e.preventDefault(); const btn = document.getElementById('btnSimpanAdmin'); btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; let rawPass = document.getElementById('inputAdminPassword').value; let encryptedPass = rawPass ? await hashPassword(rawPass) : ""; const payload = { action: editModeAdmin ? "edit_admin" : "tambah_admin", row_id: currentRowAdmin, username: document.getElementById('inputAdminUsername').value, nama: document.getElementById('inputAdminNama').value, password: encryptedPass }; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); alert("Tersimpan!"); tutupModalAdmin(); setTimeout(() => loadDataAdmin(true), 1500); } catch (e) { alert("Error.");} finally { btn.innerHTML = 'Simpan'; btn.disabled = false; } });
     </script>
 </body>
 </html>
