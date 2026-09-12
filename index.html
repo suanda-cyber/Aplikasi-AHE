@@ -269,14 +269,20 @@
             return str.toLowerCase().replace(/\b\w/g, function(l) { return l.toUpperCase(); });
         }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebarOverlay').classList.toggle('hidden'); }
-        function switchPage(pageId) { document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active')); let tp = document.getElementById('page-' + pageId); if (tp) tp.classList.add('active'); document.querySelectorAll('.menu-btn').forEach(btn => { btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); btn.classList.add('text-gray-700'); }); let tm = document.getElementById('menu-' + pageId); if (tm) { tm.classList.remove('text-gray-700'); tm.classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); } if(window.innerWidth < 768) toggleSidebar(); if (pageId === 'dashboard') 
-            
-        loadDashboard(); 
-        else if (pageId === 'siswa') loadDataSiswa(); 
-        else if (pageId === 'guru') loadDataGuru(); 
-        else if (pageId === 'pembayaran') loadDataKwitansi(); 
-        else if (pageId === 'laporan') loadDataLaporan(); 
-        else if (pageId === 'admin') loadDataAdmin(); }
+        function switchPage(pageId) { 
+            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active')); 
+            let tp = document.getElementById('page-' + pageId); 
+            if (tp) tp.classList.add('active'); 
+            document.querySelectorAll('.menu-btn').forEach(btn => { btn.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); btn.classList.add('text-gray-700'); }); 
+            let tm = document.getElementById('menu-' + pageId); 
+            if (tm) { tm.classList.remove('text-gray-700'); tm.classList.add('bg-indigo-50', 'text-indigo-700', 'font-medium', 'active-menu'); } 
+            if(window.innerWidth < 768) toggleSidebar(); 
+            if (pageId === 'dashboard') loadDashboard(); 
+            else if (pageId === 'siswa') loadDataSiswa(); 
+            else if (pageId === 'guru') loadDataGuru(); 
+            else if (pageId === 'pembayaran') loadDataKwitansi(); 
+            else if (pageId === 'laporan') loadDataLaporan(); 
+            else if (pageId === 'admin') loadDataAdmin(); }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) { e.preventDefault(); const btn = document.getElementById('btnLogin'); const alertBox = document.getElementById('loginAlert'); btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>...'; btn.disabled = true; alertBox.classList.add('hidden'); try { let enc = await hashPassword(document.getElementById('password').value); const res = await fetch(`${APPS_SCRIPT_URL}?action=login&username=${document.getElementById('username').value}&password=${enc}`); const result = await res.json(); if (result.status === "sukses") { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('dashboard-screen').classList.remove('hidden'); document.getElementById('dashboard-screen').classList.add('flex'); document.getElementById('profilNama').innerText = result.nama_admin; document.getElementById('profilInisial').innerText = result.nama_admin.charAt(0); sessionStorage.setItem("ahe_logged_in", "true"); sessionStorage.setItem("ahe_admin_name", result.nama_admin); switchPage('dashboard'); } else { alertBox.innerText = result.pesan; alertBox.classList.remove('hidden'); } } catch (error) { alertBox.innerText = "Gagal terhubung."; alertBox.classList.remove('hidden'); } finally { btn.innerHTML = '<span>Masuk</span>'; btn.disabled = false; } });
         function logout() { sessionStorage.clear(); location.reload(); }
