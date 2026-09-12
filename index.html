@@ -235,18 +235,44 @@
         let rawDataSiswa = []; let editModeSiswa = false; let currentRowSiswa = null; let selectedSiswa = null; let base64StringFoto = ""; let mimeTypeFoto = "";
 
         // Fungsi Convert Gambar ke Base64
+        // Fungsi Kompresor Gambar Otomatis (Anti-Macet)
         function previewImage(input) {
             let imgPreview = document.getElementById('previewFoto');
             let iconCam = document.getElementById('ikonKamera');
             if (input.files && input.files[0]) {
                 let file = input.files[0];
-                if(file.size > 2000000) { alert("Ukuran foto maksimal 2 MB!"); input.value = ""; return; }
-                mimeTypeFoto = file.type;
                 let reader = new FileReader();
+                
                 reader.onload = function(e) {
-                    imgPreview.src = e.target.result;
-                    imgPreview.classList.remove('hidden'); iconCam.classList.add('hidden');
-                    base64StringFoto = e.target.result.split(',')[1];
+                    let img = new Image();
+                    img.onload = function() {
+                        // Proses Kompresi (Ubah ukuran maksimal jadi lebar 400px)
+                        let canvas = document.createElement('canvas');
+                        let ctx = canvas.getContext('2d');
+                        let maxW = 400; 
+                        let scale = maxW / img.width;
+                        
+                        // Jika gambar lebih kecil dari 400px, jangan diperbesar
+                        if (scale > 1) scale = 1; 
+                        
+                        let newW = img.width * scale;
+                        let newH = img.height * scale;
+                        
+                        canvas.width = newW;
+                        canvas.height = newH;
+                        ctx.drawImage(img, 0, 0, newW, newH);
+                        
+                        // Ubah ke format JPEG dengan kualitas 70% (Sangat ringan)
+                        let dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+                        
+                        imgPreview.src = dataUrl;
+                        imgPreview.classList.remove('hidden'); 
+                        iconCam.classList.add('hidden');
+                        
+                        base64StringFoto = dataUrl.split(',')[1];
+                        mimeTypeFoto = 'image/jpeg';
+                    };
+                    img.src = e.target.result;
                 }
                 reader.readAsDataURL(file);
             }
