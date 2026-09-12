@@ -238,11 +238,21 @@
 
         // ================= FITUR KELOLA SISWA (BARU LENGKAP) =================
         // Fungsi untuk mengubah link Google Drive menjadi Direct Image Link
+        // Fungsi Penembus Blokir Google Drive (Menggunakan Mode Thumbnail)
         function getDriveDirectLink(url) {
             if (!url) return 'https://via.placeholder.com/150?text=NO+FOTO';
-            if (url.includes('drive.google.com/file/d/')) {
-                let fileId = url.split('/file/d/')[1].split('/')[0];
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            
+            let fileId = "";
+            // Mencari File ID dari berbagai format link Google Drive
+            if (url.includes('/file/d/')) {
+                fileId = url.split('/file/d/')[1].split('/')[0];
+            } else if (url.includes('id=')) {
+                fileId = url.split('id=')[1].split('&')[0];
+            }
+            
+            if (fileId) {
+                // Trik paling ampuh: Memanggil versi thumbnail Google Drive
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
             }
             return url;
         }
